@@ -27,6 +27,7 @@ import (
 	"github.com/cyberverse/server/internal/config"
 	"github.com/cyberverse/server/internal/direct"
 	"github.com/cyberverse/server/internal/inference"
+	"github.com/cyberverse/server/internal/kanshan"
 	"github.com/cyberverse/server/internal/livekit"
 	"github.com/cyberverse/server/internal/mediapeer"
 	"github.com/cyberverse/server/internal/pb"
@@ -1477,7 +1478,18 @@ func (o *Orchestrator) HydrateVoiceDialogContext(session *Session) error {
 	if session.Mode != ModeOmni || session.CharacterID == "" {
 		return nil
 	}
-	messages, _, _, err := o.charStore.LoadRecentMessages(session.CharacterID, "", doubaoDialogContextLoadLimit)
+	var messages []map[string]any
+	var err error
+	if strings.TrimSpace(session.CharacterID) == kanshan.CharacterID {
+		ownerID := session.OwnerIDSnapshot()
+		if strings.TrimSpace(ownerID) == "" {
+			session.SetDialogContext(nil)
+			return nil
+		}
+		messages, _, _, err = o.charStore.LoadRecentMessagesForOwner(session.CharacterID, ownerID, "", doubaoDialogContextLoadLimit)
+	} else {
+		messages, _, _, err = o.charStore.LoadRecentMessages(session.CharacterID, "", doubaoDialogContextLoadLimit)
+	}
 	if err != nil {
 		return err
 	}
@@ -2080,6 +2092,10 @@ func (o *Orchestrator) persistPersonaTaskEvent(ctx context.Context, session *Ses
 	}
 
 	store := o.taskService.Store()
+	ownerID := ""
+	if session != nil && strings.TrimSpace(session.CharacterID) == kanshan.CharacterID {
+		ownerID = session.OwnerIDSnapshot()
+	}
 	task, err := store.GetTask(ctx, taskID)
 	if errors.Is(err, agenttask.ErrNotFound) {
 		taskSessionID := stringValue(payload["session_id"])
@@ -2112,6 +2128,7 @@ func (o *Orchestrator) persistPersonaTaskEvent(ctx context.Context, session *Ses
 			ID:          taskID,
 			SessionID:   taskSessionID,
 			CharacterID: characterID,
+			OwnerID:     ownerID,
 			Kind:        kind,
 			Title:       title,
 			UserRequest: userRequest,
@@ -2119,6 +2136,10 @@ func (o *Orchestrator) persistPersonaTaskEvent(ctx context.Context, session *Ses
 	}
 	if err != nil {
 		log.Printf("persona task persist failed task=%s: %v", taskID, err)
+		return fallback
+	}
+	if ownerID != "" && task.OwnerID != "" && task.OwnerID != ownerID {
+		log.Printf("persona task owner mismatch task=%s session=%s", taskID, sessionID)
 		return fallback
 	}
 
@@ -4052,8 +4073,18 @@ func (o *Orchestrator) persistSessionConversation(session *Session) (bool, error
 		}
 	}
 
-	if err := o.charStore.SaveConversation(characterID, sessionID, startedAt, endedAt, messages); err != nil {
-		return false, err
+	if strings.TrimSpace(characterID) == kanshan.CharacterID {
+		ownerID := session.OwnerIDSnapshot()
+		if strings.TrimSpace(ownerID) == "" {
+			return false, nil
+		}
+		if err := o.charStore.SaveConversationForOwner(characterID, ownerID, sessionID, startedAt, endedAt, messages); err != nil {
+			return false, err
+		}
+	} else {
+		if err := o.charStore.SaveConversation(characterID, sessionID, startedAt, endedAt, messages); err != nil {
+			return false, err
+		}
 	}
 	return true, nil
 }
@@ -4063,7 +4094,15 @@ func (o *Orchestrator) persistSessionConversation(session *Session) (bool, error
 // Otherwise falls back to a timestamp-based dir (used by the recorder's OutputDir).
 func (o *Orchestrator) sessionRecordingDir(session *Session) string {
 	if session.CharacterID != "" && o.charStore != nil {
-		dir := o.charStore.SessionRecordingDir(session.CharacterID, session.ID, session.CreatedAt)
+		var dir string
+		if strings.TrimSpace(session.CharacterID) == kanshan.CharacterID {
+			ownerID := session.OwnerIDSnapshot()
+			if strings.TrimSpace(ownerID) != "" {
+				dir = o.charStore.SessionRecordingDirForOwner(session.CharacterID, ownerID, session.ID, session.CreatedAt)
+			}
+		} else {
+			dir = o.charStore.SessionRecordingDir(session.CharacterID, session.ID, session.CreatedAt)
+		}
 		if dir != "" {
 			session.mu.Lock()
 			session.RecordingDir = dir

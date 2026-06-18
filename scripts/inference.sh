@@ -8,6 +8,17 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+if [[ -n "${PYTHON:-}" ]]; then
+  :
+elif command -v python >/dev/null 2>&1; then
+  PYTHON=python
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+else
+  echo "Neither python nor python3 found in PATH. Set PYTHON to your interpreter." >&2
+  exit 1
+fi
+
 CONFIG="${1:-cyberverse_config.yaml}"
 
 if [[ ! -f "${CONFIG}" ]]; then
@@ -26,8 +37,8 @@ fi
 
 # ── Read YAML values (env still wins when set) ──────────────────────────────
 _yaml_first_val() {
-  # Match `python -m inference.server` below; non-interactive bash ignores zsh `python3` aliases.
-  python - "$CONFIG" "$@" <<'PY'
+  # Same interpreter as inference.server below; non-interactive bash ignores zsh aliases.
+  "${PYTHON}" - "$CONFIG" "$@" <<'PY'
 import sys
 import yaml
 
@@ -74,7 +85,7 @@ esac
 if [[ "${AVATAR_ENABLED}" == "false" ]]; then
   echo "[inference] Avatar inference disabled; starting voice-only inference server"
   ./scripts/generate_proto.sh
-  exec python -m inference.server --config "${CONFIG}"
+  exec "${PYTHON}" -m inference.server --config "${CONFIG}"
 fi
 
 # Detect active avatar model from config
@@ -115,7 +126,7 @@ mkdir -p "${TORCHINDUCTOR_CACHE_DIR}"
 if [[ "${WORLD_SIZE}" -le 1 ]]; then
   echo "[inference] Single GPU mode (world_size=${WORLD_SIZE})"
   [[ -n "${CUDA_VISIBLE_DEVICES}" ]] && echo "[inference] CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
-  exec python -m inference.server --config "${CONFIG}"
+  exec "${PYTHON}" -m inference.server --config "${CONFIG}"
 fi
 
 # ── Multi GPU: torchrun ─────────────────────────────────────────────────────

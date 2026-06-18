@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { createSession, getCharacter, getZhihuAuthUrl, getZhihuMe, logoutZhihu } from '../services/api'
-import type { ZhihuUser } from '../services/api'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { createSession, getCharacter } from '../services/api'
 import type { PipelineMode } from '../types'
 import { buildSessionLaunchState, saveSessionLaunchState } from '../utils/sessionLaunchState'
-import { getZhihuRedirectUri, ZHIHU_AFTER_AUTH_KEY, ZHIHU_OAUTH_STATE_KEY } from '../utils/zhihuAuth'
 
 const router = useRouter()
-const route = useRoute()
 
 const KANSHAN_CHARACTER_ID = 'b3bf8345-21c9-463a-bf0c-dac7a034476c'
 const KANSHAN_RETURN_PATH = '/kanshan'
@@ -17,27 +14,18 @@ const DEMO_VIDEO_URL = ''
 const idleVideoSrc = '/liukanshan/idle-preview.mp4'
 
 const connecting = ref(false)
-const authLoading = ref(false)
-const authChecked = ref(false)
 const launchError = ref('')
 const incomingCallVisible = ref(true)
-const zhihuUser = ref<ZhihuUser | null>(null)
 
 const primaryActionLabel = computed(() => {
   if (connecting.value) return '正在进入...'
-  if (authLoading.value) return '正在登录...'
-  if (!authChecked.value) return '正在检查...'
   return '开始语音通话'
 })
 
 const callAcceptLabel = computed(() => {
   if (connecting.value) return '接听中'
-  if (authLoading.value) return '登录中'
-  if (!authChecked.value) return '检查中'
   return '接听'
 })
-
-const zhihuDisplayName = computed(() => zhihuUser.value?.fullname || '知乎用户')
 
 const features = [
   {
@@ -67,62 +55,8 @@ const features = [
   },
 ]
 
-onMounted(async () => {
-  await refreshZhihuSession()
-  if (route.query.start === 'voice' && zhihuUser.value) {
-    router.replace('/kanshan')
-    enterKanshanVoiceCall({ requireAuth: false })
-  }
-})
-
-async function refreshZhihuSession() {
-  try {
-    const response = await getZhihuMe()
-    zhihuUser.value = response.user
-  } catch {
-    zhihuUser.value = null
-  } finally {
-    authChecked.value = true
-  }
-}
-
-async function startZhihuLogin() {
-  if (authLoading.value) return
-
-  authLoading.value = true
-  launchError.value = ''
-
-  try {
-    const response = await getZhihuAuthUrl(getZhihuRedirectUri())
-    window.sessionStorage.setItem(ZHIHU_OAUTH_STATE_KEY, response.state)
-    window.sessionStorage.setItem(ZHIHU_AFTER_AUTH_KEY, 'voice')
-    window.location.assign(response.authorize_url)
-  } catch (error) {
-    launchError.value = error instanceof Error ? error.message : '知乎登录启动失败，请检查 OAuth 配置。'
-    authLoading.value = false
-  }
-}
-
-async function logoutZhihuSession() {
-  launchError.value = ''
-  try {
-    await logoutZhihu()
-  } catch {
-    // A failed logout request should not keep stale UI state on the page.
-  } finally {
-    zhihuUser.value = null
-    window.sessionStorage.removeItem(ZHIHU_OAUTH_STATE_KEY)
-    window.sessionStorage.removeItem(ZHIHU_AFTER_AUTH_KEY)
-  }
-}
-
-async function enterKanshanVoiceCall(options: { requireAuth?: boolean } = {}) {
-  if (connecting.value || authLoading.value) return
-
-  if (options.requireAuth !== false && !zhihuUser.value) {
-    await startZhihuLogin()
-    return
-  }
+async function enterKanshanVoiceCall() {
+  if (connecting.value) return
 
   connecting.value = true
   launchError.value = ''
@@ -183,7 +117,7 @@ function rejectIncomingCall() {
         </p>
 
         <div class="hero-actions">
-          <button class="primary-action" type="button" :disabled="connecting || authLoading || !authChecked" @click="() => enterKanshanVoiceCall()">
+          <button class="primary-action" type="button" :disabled="connecting" @click="() => enterKanshanVoiceCall()">
             <span>{{ primaryActionLabel }}</span>
             <i aria-hidden="true">›</i>
           </button>
@@ -201,20 +135,6 @@ function rejectIncomingCall() {
               />
             </svg>
           </a>
-        </div>
-
-        <div class="zhihu-auth-row" :class="{ signed: zhihuUser }" aria-live="polite">
-          <template v-if="zhihuUser">
-            <img v-if="zhihuUser.avatar_path" :src="zhihuUser.avatar_path" alt="">
-            <span>已登录 {{ zhihuDisplayName }}</span>
-            <button type="button" @click="logoutZhihuSession">退出</button>
-          </template>
-          <template v-else>
-            <span>{{ authChecked ? '接听前需使用知乎账号登录' : '正在检查知乎登录状态' }}</span>
-            <button type="button" :disabled="authLoading || !authChecked" @click="startZhihuLogin">
-              {{ authLoading ? '登录中' : '知乎登录' }}
-            </button>
-          </template>
         </div>
 
         <p v-if="launchError" class="launch-error" role="alert">{{ launchError }}</p>
@@ -255,7 +175,7 @@ function rejectIncomingCall() {
               </span>
               <em>拒绝</em>
             </button>
-            <button class="call-control accept" type="button" :disabled="connecting || authLoading || !authChecked" @click="() => enterKanshanVoiceCall()">
+            <button class="call-control accept" type="button" :disabled="connecting" @click="() => enterKanshanVoiceCall()">
               <span aria-hidden="true">
                 <svg viewBox="0 0 24 24">
                   <path d="M6.6 10.8c3.5-2.3 7.3-2.3 10.8 0l1.7 1.1c.6.4.8 1.1.5 1.8l-.8 1.9c-.3.7-1.1 1-1.8.8l-2.4-.8c-.5-.2-.9-.6-1-1.1l-.2-1.1a8.6 8.6 0 0 0-2.8 0l-.2 1.1c-.1.5-.5.9-1 1.1l-2.4.8c-.7.2-1.5-.1-1.8-.8l-.8-1.9c-.3-.7-.1-1.4.5-1.8l1.7-1.1Z" />
@@ -377,7 +297,7 @@ function rejectIncomingCall() {
         <h2 id="cta-title">让刘看山成为能聊、能查、能记住的网页端数字人</h2>
         <p>静态页面负责建立信任和解释能力；开始语音通话按钮负责进入现有实时会话。</p>
       </div>
-      <button class="primary-action" type="button" :disabled="connecting || authLoading || !authChecked" @click="() => enterKanshanVoiceCall()">
+      <button class="primary-action" type="button" :disabled="connecting" @click="() => enterKanshanVoiceCall()">
         <span>{{ primaryActionLabel }}</span>
         <i aria-hidden="true">›</i>
       </button>
@@ -507,61 +427,6 @@ function rejectIncomingCall() {
   align-items: center;
   gap: 20px;
   margin-top: 74px;
-}
-
-.zhihu-auth-row {
-  width: fit-content;
-  max-width: min(560px, 100%);
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-  padding: 7px 8px 7px 14px;
-  border: 1px solid rgba(0, 132, 255, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 18px;
-  box-shadow: 0 8px 18px rgba(0, 132, 255, 0.08);
-}
-
-.zhihu-auth-row.signed {
-  color: var(--ink);
-}
-
-.zhihu-auth-row img {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  object-fit: cover;
-}
-
-.zhihu-auth-row span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.zhihu-auth-row button {
-  height: 30px;
-  flex: 0 0 auto;
-  padding: 0 13px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(0, 132, 255, 0.1);
-  color: var(--blue);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 800;
-}
-
-.zhihu-auth-row button:disabled {
-  cursor: wait;
-  opacity: 0.68;
 }
 
 .primary-action,

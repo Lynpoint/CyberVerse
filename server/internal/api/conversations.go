@@ -23,7 +23,20 @@ func (r *Router) handleGetConversationMessages(w http.ResponseWriter, req *http.
 	}
 	before := req.URL.Query().Get("before")
 
-	messages, nextCursor, hasMore, err := r.charStore.LoadRecentMessages(characterID, before, limit)
+	var messages []map[string]any
+	var nextCursor string
+	var hasMore bool
+	var err error
+	if isKanshanCharacter(characterID) {
+		ownerID, ownerErr := r.ensureAnonymousOwner(w, req)
+		if ownerErr != nil {
+			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: ownerErr.Error()})
+			return
+		}
+		messages, nextCursor, hasMore, err = r.charStore.LoadRecentMessagesForOwner(characterID, ownerID, before, limit)
+	} else {
+		messages, nextCursor, hasMore, err = r.charStore.LoadRecentMessages(characterID, before, limit)
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			writeJSON(w, http.StatusNotFound, ErrorResponse{Error: err.Error()})

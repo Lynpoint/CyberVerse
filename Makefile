@@ -1,4 +1,4 @@
-.PHONY: proto setup setup-agent test test-py test-go test-integration build inference server frontend docker-up docker-down lint clean
+.PHONY: proto setup setup-agent test test-py test-go test-integration build build-go frontend-build inference server frontend docker-up docker-down lint clean
 
 # Locate Go 1.25: system package, user SDK install, or PATH fallback
 GO ?= $(shell \
@@ -17,6 +17,9 @@ NODE_BIN      ?= $(shell \
   found=$$(ls -d $(NVM_NODE)/v22.*/bin/node 2>/dev/null | sort -V | tail -1); \
   if [ -x "$$found" ]; then dirname "$$found"; \
   else echo ""; fi)
+
+FRONTEND_DOMAIN ?= www.cyberverse.cc
+FRONTEND_WS_BASE ?= wss://$(FRONTEND_DOMAIN)
 
 # Proto generation (Python + Go)
 proto:
@@ -64,11 +67,16 @@ frontend:
 	@if [ -n "$(NODE_BIN)" ]; then export PATH=$(NODE_BIN):$$PATH; fi; cd frontend && npm run dev
 
 # Build
+build: build-go frontend-build
+
 build-go:
 	# Build with the "livekit" tag so LiveKit functionality is enabled in production too.
 	PKG_CONFIG_PATH=$(CONDA_PKG_CFG):$$PKG_CONFIG_PATH \
 	  LD_LIBRARY_PATH=$(CONDA_LIB):$$LD_LIBRARY_PATH \
 	  cd server && $(GO) build -tags livekit -o ../bin/cyberverse-server ./cmd/cyberverse-server/
+
+frontend-build:
+	@if [ -n "$(NODE_BIN)" ]; then export PATH=$(NODE_BIN):$$PATH; fi; cd frontend && VITE_WS_BASE=$(FRONTEND_WS_BASE) npm run build
 
 # Docker
 docker-up:

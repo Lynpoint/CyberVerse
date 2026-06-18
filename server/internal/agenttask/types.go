@@ -29,6 +29,7 @@ type Task struct {
 	ID            string     `json:"id"`
 	SessionID     string     `json:"session_id"`
 	CharacterID   string     `json:"character_id,omitempty"`
+	OwnerID       string     `json:"-"`
 	Kind          string     `json:"kind"`
 	Title         string     `json:"title"`
 	UserRequest   string     `json:"user_request"`
@@ -66,6 +67,7 @@ type CreateTaskInput struct {
 	ID          string
 	SessionID   string
 	CharacterID string
+	OwnerID     string
 	Kind        string
 	Title       string
 	UserRequest string

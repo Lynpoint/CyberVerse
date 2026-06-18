@@ -83,6 +83,7 @@ func (s *Store) migrate(ctx context.Context) error {
 			id TEXT PRIMARY KEY,
 			session_id TEXT NOT NULL,
 			character_id TEXT NOT NULL DEFAULT '',
+			owner_id TEXT NOT NULL DEFAULT '',
 			kind TEXT NOT NULL,
 			title TEXT NOT NULL,
 			user_request TEXT NOT NULL,
@@ -125,7 +126,45 @@ func (s *Store) migrate(ctx context.Context) error {
 			return err
 		}
 	}
+	if err := s.ensureTaskOwnerColumn(ctx); err != nil {
+		return err
+	}
+	ownerStmts := []string{
+		`CREATE INDEX IF NOT EXISTS idx_tasks_owner_session_updated ON tasks(owner_id, session_id, updated_at DESC);`,
+		`CREATE INDEX IF NOT EXISTS idx_tasks_owner_updated ON tasks(owner_id, updated_at DESC);`,
+	}
+	for _, stmt := range ownerStmts {
+		if _, err := s.db.ExecContext(ctx, stmt); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (s *Store) ensureTaskOwnerColumn(ctx context.Context) error {
+	rows, err := s.db.QueryContext(ctx, `PRAGMA table_info(tasks)`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, typ string
+		var notNull int
+		var defaultValue any
+		var pk int
+		if err := rows.Scan(&cid, &name, &typ, &notNull, &defaultValue, &pk); err != nil {
+			return err
+		}
+		if name == "owner_id" {
+			return rows.Err()
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(ctx, `ALTER TABLE tasks ADD COLUMN owner_id TEXT NOT NULL DEFAULT ''`)
+	return err
 }
 
 func nowString() string {
@@ -205,6 +244,7 @@ func (s *Store) CreateTask(ctx context.Context, in CreateTaskInput) (*Task, erro
 		ID:          id,
 		SessionID:   strings.TrimSpace(in.SessionID),
 		CharacterID: strings.TrimSpace(in.CharacterID),
+		OwnerID:     strings.TrimSpace(in.OwnerID),
 		Kind:        kind,
 		Title:       title,
 		UserRequest: in.UserRequest,
@@ -213,9 +253,9 @@ func (s *Store) CreateTask(ctx context.Context, in CreateTaskInput) (*Task, erro
 		UpdatedAt:   parseTimeValue(now),
 	}
 	_, err := s.db.ExecContext(ctx, `INSERT INTO tasks
-		(id, session_id, character_id, kind, title, user_request, status, progress, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-		task.ID, task.SessionID, task.CharacterID, task.Kind, task.Title, task.UserRequest, task.Status, now, now)
+		(id, session_id, character_id, owner_id, kind, title, user_request, status, progress, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+		task.ID, task.SessionID, task.CharacterID, task.OwnerID, task.Kind, task.Title, task.UserRequest, task.Status, now, now)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +263,7 @@ func (s *Store) CreateTask(ctx context.Context, in CreateTaskInput) (*Task, erro
 }
 
 func (s *Store) GetTask(ctx context.Context, id string) (*Task, error) {
-	row := s.db.QueryRowContext(ctx, `SELECT id, session_id, character_id, kind, title, user_request,
+	row := s.db.QueryRowContext(ctx, `SELECT id, session_id, character_id, owner_id, kind, title, user_request,
 		status, progress, result_summary, created_at, updated_at, finished_at FROM tasks WHERE id = ?`, id)
 	task, err := scanTask(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -239,7 +279,7 @@ type taskScanner interface {
 func scanTask(row taskScanner) (*Task, error) {
 	var task Task
 	var status, createdAt, updatedAt, finishedAt string
-	if err := row.Scan(&task.ID, &task.SessionID, &task.CharacterID, &task.Kind, &task.Title,
+	if err := row.Scan(&task.ID, &task.SessionID, &task.CharacterID, &task.OwnerID, &task.Kind, &task.Title,
 		&task.UserRequest, &status, &task.Progress, &task.ResultSummary, &createdAt, &updatedAt, &finishedAt); err != nil {
 		return nil, err
 	}
@@ -254,7 +294,7 @@ func (s *Store) ListSessionTasks(ctx context.Context, sessionID string, limit in
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT id, session_id, character_id, kind, title, user_request,
+	rows, err := s.db.QueryContext(ctx, `SELECT id, session_id, character_id, owner_id, kind, title, user_request,
 		status, progress, result_summary, created_at, updated_at, finished_at
 		FROM tasks WHERE session_id = ? ORDER BY updated_at DESC LIMIT ?`, sessionID, limit)
 	if err != nil {
@@ -272,8 +312,30 @@ func (s *Store) ListSessionTasks(ctx context.Context, sessionID string, limit in
 	return tasks, rows.Err()
 }
 
+func (s *Store) ListSessionTasksForOwner(ctx context.Context, sessionID, ownerID string, limit int) ([]Task, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT id, session_id, character_id, owner_id, kind, title, user_request,
+		status, progress, result_summary, created_at, updated_at, finished_at
+		FROM tasks WHERE session_id = ? AND owner_id = ? ORDER BY updated_at DESC LIMIT ?`, sessionID, ownerID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	tasks := make([]Task, 0)
+	for rows.Next() {
+		task, err := scanTask(rows)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, *task)
+	}
+	return tasks, rows.Err()
+}
+
 func (s *Store) LatestActiveTask(ctx context.Context, sessionID string) (*Task, error) {
-	row := s.db.QueryRowContext(ctx, `SELECT id, session_id, character_id, kind, title, user_request,
+	row := s.db.QueryRowContext(ctx, `SELECT id, session_id, character_id, owner_id, kind, title, user_request,
 		status, progress, result_summary, created_at, updated_at, finished_at
 		FROM tasks
 		WHERE session_id = ? AND status IN (?, ?, ?)
@@ -305,7 +367,7 @@ func (s *Store) AppendEvent(ctx context.Context, taskID string, in AppendEventIn
 	}
 	defer tx.Rollback()
 
-	row := tx.QueryRowContext(ctx, `SELECT id, session_id, character_id, kind, title, user_request,
+	row := tx.QueryRowContext(ctx, `SELECT id, session_id, character_id, owner_id, kind, title, user_request,
 		status, progress, result_summary, created_at, updated_at, finished_at FROM tasks WHERE id = ?`, taskID)
 	task, err := scanTask(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -416,7 +478,7 @@ func (s *Store) CreateArtifact(ctx context.Context, taskID string, in CreateArti
 	}
 	defer tx.Rollback()
 
-	row := tx.QueryRowContext(ctx, `SELECT id, session_id, character_id, kind, title, user_request,
+	row := tx.QueryRowContext(ctx, `SELECT id, session_id, character_id, owner_id, kind, title, user_request,
 		status, progress, result_summary, created_at, updated_at, finished_at FROM tasks WHERE id = ?`, taskID)
 	task, err := scanTask(row)
 	if errors.Is(err, sql.ErrNoRows) {

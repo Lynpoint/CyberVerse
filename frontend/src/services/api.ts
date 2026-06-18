@@ -111,61 +111,6 @@ export async function getHealth(): Promise<HealthResponse> {
   return request('/health')
 }
 
-// ── Zhihu Auth ──
-
-export interface ZhihuUser {
-  uid?: number
-  hash_id?: string
-  fullname?: string
-  gender?: string
-  headline?: string
-  description?: string
-  avatar_path?: string
-  url?: string
-  phone_no?: string
-  email?: string
-}
-
-export interface ZhihuAuthUrlResponse {
-  authorize_url: string
-  state: string
-}
-
-export interface ZhihuCallbackResponse {
-  authenticated: boolean
-  expires_in: number
-  user: ZhihuUser
-}
-
-export interface ZhihuMeResponse {
-  authenticated: boolean
-  user: ZhihuUser
-}
-
-export async function getZhihuAuthUrl(redirectUri: string): Promise<ZhihuAuthUrlResponse> {
-  const params = new URLSearchParams({ redirect_uri: redirectUri })
-  return request(`/auth/zhihu/url?${params}`)
-}
-
-export async function completeZhihuCallback(data: {
-  code: string
-  state: string
-  redirect_uri: string
-}): Promise<ZhihuCallbackResponse> {
-  return request('/auth/zhihu/callback', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
-}
-
-export async function getZhihuMe(): Promise<ZhihuMeResponse> {
-  return request('/auth/zhihu/me')
-}
-
-export async function logoutZhihu(): Promise<void> {
-  return request('/auth/zhihu/logout', { method: 'POST' })
-}
-
 // ── Agent Tasks ──
 
 export interface AgentTask {

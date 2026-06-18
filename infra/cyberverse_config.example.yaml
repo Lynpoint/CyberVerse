@@ -229,7 +229,7 @@ pipeline:
     turn_realm: "cyberverse"
     turn_username: "cyberverse"
     turn_password: "${TURN_PASSWORD}"
-    ice_public_ip: "" # Set public IP/domain for direct remote browser access.
+    ice_public_ip: "" # REQUIRED for remote Direct WebRTC: public hostname or IP (not 127.0.0.1). Used in turn:HOST:PORT sent to browsers.
 
 recording:
     # Enables per-turn MP4, raw WAV, and transcript files.

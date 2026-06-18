@@ -39,9 +39,26 @@ func (r *Router) handleListSessionTasks(w http.ResponseWriter, req *http.Request
 		return
 	}
 	limit := parsePositiveInt(req.URL.Query().Get("limit"), 50, 200)
+	if session, err := r.sessionMgr.Get(sessionID); err == nil && isKanshanCharacter(session.CharacterID) {
+		if !r.authorizeKanshanSessionAccess(w, req, session) {
+			return
+		}
+		tasks, err := r.taskSvc.Store().ListSessionTasksForOwner(req.Context(), sessionID, session.OwnerIDSnapshot(), limit)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"tasks": tasks})
+		return
+	}
 	tasks, err := r.taskSvc.Store().ListSessionTasks(req.Context(), sessionID, limit)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+	var ok bool
+	tasks, ok = r.filterVisibleTasks(w, req, tasks)
+	if !ok {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tasks": tasks})
@@ -57,6 +74,9 @@ func (r *Router) handleGetTask(w http.ResponseWriter, req *http.Request) {
 		writeTaskError(w, err)
 		return
 	}
+	if !r.authorizeTaskAccess(w, req, task) {
+		return
+	}
 	writeJSON(w, http.StatusOK, task)
 }
 
@@ -67,6 +87,14 @@ func (r *Router) handleListTaskEvents(w http.ResponseWriter, req *http.Request) 
 	}
 	afterSeq, _ := strconv.ParseInt(req.URL.Query().Get("after_seq"), 10, 64)
 	limit := parsePositiveInt(req.URL.Query().Get("limit"), 200, 500)
+	task, err := r.taskSvc.Store().GetTask(req.Context(), req.PathValue("task_id"))
+	if err != nil {
+		writeTaskError(w, err)
+		return
+	}
+	if !r.authorizeTaskAccess(w, req, task) {
+		return
+	}
 	events, err := r.taskSvc.Store().ListEventsAfter(req.Context(), req.PathValue("task_id"), afterSeq, limit)
 	if err != nil {
 		writeTaskError(w, err)
@@ -78,6 +106,14 @@ func (r *Router) handleListTaskEvents(w http.ResponseWriter, req *http.Request) 
 func (r *Router) handleGetTaskArtifact(w http.ResponseWriter, req *http.Request) {
 	if r.taskSvc == nil || r.taskSvc.Store() == nil {
 		writeJSON(w, http.StatusServiceUnavailable, ErrorResponse{Error: "agent task service is disabled"})
+		return
+	}
+	task, err := r.taskSvc.Store().GetTask(req.Context(), req.PathValue("task_id"))
+	if err != nil {
+		writeTaskError(w, err)
+		return
+	}
+	if !r.authorizeTaskAccess(w, req, task) {
 		return
 	}
 	artifact, content, err := r.taskSvc.Store().GetArtifact(req.Context(), req.PathValue("task_id"), req.PathValue("artifact_id"))

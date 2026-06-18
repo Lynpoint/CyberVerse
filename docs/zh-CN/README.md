@@ -40,6 +40,10 @@
 - [PersonaAgent 与后台任务 MVP](features/2026-05-11-persona-agent-task-mvp.md)
 - [VoiceLLM 文本输入改走 Doubao 的设计与实现](features/2026-04-24-voice-llm-text-input-via-doubao.md)
 
+## 当前 Operations 文档
+
+- [www.cyberverse.cc 域名部署](operations/www-cyberverse-cc-domain-deployment.md)
+
 ## feature 文档命名建议
 
 统一使用：

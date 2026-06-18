@@ -78,6 +78,7 @@ type DialogContextItem struct {
 type Session struct {
 	ID             string `json:"id"`
 	CharacterID    string `json:"character_id"`
+	OwnerID        string `json:"-"`
 	state          SessionState
 	Mode           PipelineMode        `json:"mode"`
 	History        []ChatMessage       `json:"history"`
@@ -132,6 +133,18 @@ func (s *Session) GetState() SessionState {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.state
+}
+
+func (s *Session) SetOwnerID(ownerID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.OwnerID = ownerID
+}
+
+func (s *Session) OwnerIDSnapshot() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.OwnerID
 }
 
 // MarkPipelineRunning initializes PipelineDone and returns the new pipeline sequence.

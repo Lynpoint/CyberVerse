@@ -297,6 +297,22 @@ func (s *Store) SessionsDir(id string) string {
 	return filepath.Join(d, "sessions")
 }
 
+func (s *Store) UserSessionsDir(id, ownerID string) string {
+	return s.sessionsDirForOwner(id, ownerID)
+}
+
+func (s *Store) sessionsDirForOwner(id, ownerID string) string {
+	ownerID = strings.TrimSpace(ownerID)
+	if ownerID == "" {
+		return s.SessionsDir(id)
+	}
+	d := s.CharDir(id)
+	if d == "" {
+		return ""
+	}
+	return filepath.Join(d, "users", ownerDirName(ownerID), "sessions")
+}
+
 // IdleVideosDir returns the full path to a character's idle video cache directory.
 func (s *Store) IdleVideosDir(id string) string {
 	d := s.CharDir(id)
@@ -418,14 +434,20 @@ func (s *Store) NextImageFilename(id string) string {
 
 // SaveConversation persists a session's data (messages + metadata) into the character's sessions dir.
 func (s *Store) SaveConversation(characterID, sessionID string, startedAt, endedAt time.Time, messages []map[string]any) error {
-	sessDir := s.SessionsDir(characterID)
+	return s.SaveConversationForOwner(characterID, "", sessionID, startedAt, endedAt, messages)
+}
+
+func (s *Store) SaveConversationForOwner(characterID, ownerID, sessionID string, startedAt, endedAt time.Time, messages []map[string]any) error {
+	sessDir := s.sessionsDirForOwner(characterID, ownerID)
 	if sessDir == "" {
 		return fmt.Errorf("character not found: %s", characterID)
 	}
 
 	dirName := startedAt.Format("20060102-150405") + "_" + shortID(sessionID)
 	fullDir := filepath.Join(sessDir, dirName)
-	os.MkdirAll(fullDir, 0755)
+	if err := os.MkdirAll(fullDir, 0755); err != nil {
+		return err
+	}
 
 	record := map[string]any{
 		"session_id":   sessionID,
@@ -447,7 +469,11 @@ func (s *Store) SaveConversation(characterID, sessionID string, startedAt, ended
 // limit: max number of messages to return.
 // Returns: messages (chronological order), next cursor, hasMore.
 func (s *Store) LoadRecentMessages(characterID string, before string, limit int) ([]map[string]any, string, bool, error) {
-	sessDir := s.SessionsDir(characterID)
+	return s.LoadRecentMessagesForOwner(characterID, "", before, limit)
+}
+
+func (s *Store) LoadRecentMessagesForOwner(characterID, ownerID string, before string, limit int) ([]map[string]any, string, bool, error) {
+	sessDir := s.sessionsDirForOwner(characterID, ownerID)
 	if sessDir == "" {
 		return nil, "", false, fmt.Errorf("character not found: %s", characterID)
 	}
@@ -551,7 +577,11 @@ func (s *Store) LoadRecentMessages(characterID string, before string, limit int)
 // creating it if needed. Format: {charDir}/sessions/{timestamp}_{sessionID8}/
 // Uses createdAt so that recordings land in the same directory as SaveConversation.
 func (s *Store) SessionRecordingDir(characterID, sessionID string, createdAt time.Time) string {
-	sessDir := s.SessionsDir(characterID)
+	return s.SessionRecordingDirForOwner(characterID, "", sessionID, createdAt)
+}
+
+func (s *Store) SessionRecordingDirForOwner(characterID, ownerID, sessionID string, createdAt time.Time) string {
+	sessDir := s.sessionsDirForOwner(characterID, ownerID)
 	if sessDir == "" {
 		return ""
 	}
@@ -645,6 +675,32 @@ func sanitizeName(name string) string {
 		s = "unnamed"
 	}
 	return s
+}
+
+func ownerDirName(ownerID string) string {
+	ownerID = strings.TrimSpace(ownerID)
+	if ownerID == "" {
+		return "anonymous"
+	}
+	var b strings.Builder
+	for _, r := range ownerID {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= 'A' && r <= 'Z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '.' || r == '_' || r == '-':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('_')
+		}
+	}
+	if b.Len() == 0 {
+		return "anonymous"
+	}
+	return b.String()
 }
 
 // charDirName returns the directory name for a character: "{sanitizedName}_{id[:8]}"
