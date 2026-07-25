@@ -1,55 +1,78 @@
-# DOUBAO New auth.
-DOUBAO_API_KEY=your_doubao_api_key
+# Model providers
 
-# DOUBAO Legacy auth.
+# Doubao realtime voice LLM and Doubao TTS.
+# Prefer DOUBAO_API_KEY for the newer console auth flow.
+DOUBAO_API_KEY=your_doubao_api_key
+# Legacy Doubao auth fields kept for older Volcengine credentials.
 DOUBAO_ACCESS_TOKEN=your_doubao_access_token
 DOUBAO_APP_ID=your_doubao_app_id
+# Optional realtime dialogue WebSocket endpoint override.
 DOUBAO_WS_URL=wss://openspeech.bytedance.com/api/v3/realtime/dialogue
 
+# DashScope / Qwen LLM, Omni, ASR, TTS, and embedding models.
 DASHSCOPE_API_KEY=your_dashscope_api_key
-DASHSCOPE_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
-# Optional override for CosyVoice TTS inference WebSocket endpoint.
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+# Use dashscope-intl.aliyuncs.com for international regions.
+# DASHSCOPE_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+# Optional CosyVoice TTS inference WebSocket endpoint override.
 # DASHSCOPE_COSYVOICE_WS_URL=wss://your-workspace-id.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference
 
+# xAI / Grok models.
 XAI_API_KEY=your_xai_api_key
 
+# Gemini Live models.
 GEMINI_API_KEY=your_gemini_api_key
 # Optional: use when Gemini blocks direct regional access.
 # GEMINI_PROXY=socks5h://127.0.0.1:7897
 
+# OpenAI LLM, Realtime, and TTS models.
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_BASE_URL=https://api.openai.com/v1
 # Optional: use when OpenAI Realtime blocks direct regional access.
 # OPENAI_PROXY=socks5h://127.0.0.1:7897
 
-ZHIHU_ACCESS_SECRET=your_zhihu_access_secret
-ZHIHU_APP_ID=your_zhihu_oauth_app_id
-ZHIHU_APP_KEY=your_zhihu_oauth_app_key
-ZHIHU_REDIRECT_URI=http://localhost:5173/kanshan/oauth/callback
+# Digital human providers
 
+# Baidu Xiling live avatar and offline video synthesis.
 BAIDU_XILING_APP_ID=your_baidu_xiling_app_id
 BAIDU_XILING_APP_KEY=your_baidu_xiling_app_key
-# Optional: enables Baidu Xiling advanced video synthesis.
+# Optional advanced/offline video synthesis template.
 BAIDU_XILING_OFFLINE_TEMPLATE_ID=your_baidu_xiling_advanced_video_template_id
+# Public URL prefix that Baidu Xiling can fetch generated assets from.
 OFFLINE_VIDEO_PUBLIC_BASE_URL=https://your-public-cyberverse.example.com
 
 # Xunfei Digital Human live avatar credentials.
 XUNFEI_AVATAR_APP_ID=your_xunfei_avatar_app_id
 XUNFEI_AVATAR_API_KEY=your_xunfei_avatar_api_key
 XUNFEI_AVATAR_API_SECRET=your_xunfei_avatar_api_secret
-# AKA "接口服务ID"
+# Fallback scene_id, also known as the service interface ID.
 XUNFEI_AVATAR_SCENE_ID=your_xunfei_avatar_scene_id
-# Optional global fallback for the required Xunfei tts.vcn parameter.
+# Global fallback for the required Xunfei parameter.tts.vcn value.
 XUNFEI_AVATAR_DEFAULT_VCN=x7_yachen_pro
+
+# Application integrations
+
+# Zhihu OAuth settings for the Kanshan integration.
+ZHIHU_ACCESS_SECRET=your_zhihu_access_secret
+ZHIHU_APP_ID=your_zhihu_oauth_app_id
+ZHIHU_APP_KEY=your_zhihu_oauth_app_key
+ZHIHU_REDIRECT_URI=http://localhost:5173/kanshan/oauth/callback
+
+# Agent runtime
 
 # Optional override. By default, the LangGraph Agent Worker HTTP endpoint is
 # embedded in the inference process on http://localhost:8090.
 AGENT_WORKER_URL=http://localhost:8090
 AGENT_INTERNAL_TOKEN=
 
+# Infrastructure services
+
+# Redis password used by infra/docker-compose.yml.
 REDIS_PASSWORD=cyberverse_redis_dev
+# Embedded TURN server password used by infra/config/cyberverse.yaml.
 TURN_PASSWORD=cyberverse_turn_secret
 
+# LiveKit SFU credentials for livekit streaming mode.
 LIVEKIT_URL=wss://your-livekit-url.livekit.cloud
 LIVEKIT_API_KEY=your_livekit_api_key
 LIVEKIT_API_SECRET=your_livekit_api_secret
