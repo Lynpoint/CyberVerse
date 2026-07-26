@@ -9,6 +9,7 @@
     "preview": "node ./node_modules/vite/bin/vite.js preview"
   },
   "dependencies": {
+    "aliyun-rtc-sdk": "6.14.6",
     "livekit-client": "^2.17.3",
     "mpegts.js": "1.7.3",
     "pinia": "^3.0.4",

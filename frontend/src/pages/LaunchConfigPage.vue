@@ -39,13 +39,17 @@ const runtimeConfigMismatch = computed(() =>
 )
 const isBaiduXilingCharacter = computed(() => store.current?.avatar_backend === 'baidu_xiling')
 const isXunfeiCharacter = computed(() => store.current?.avatar_backend === 'xunfei')
-const isExternalAvatarCharacter = computed(() => isBaiduXilingCharacter.value || isXunfeiCharacter.value)
+const isViduCharacter = computed(() => store.current?.avatar_backend === 'vidu')
+const isExternalAvatarCharacter = computed(() => isBaiduXilingCharacter.value || isXunfeiCharacter.value || isViduCharacter.value)
 const canLaunch = computed(() => {
   if (isBaiduXilingCharacter.value) {
     return !!store.current?.baidu_xiling?.figure_id
   }
   if (isXunfeiCharacter.value) {
     return !!store.current?.xunfei?.avatar_id
+  }
+  if (isViduCharacter.value) {
+    return !!store.current?.active_image || !!store.current?.avatar_image
   }
   return !!activeAvatarModel.value
 })
@@ -217,7 +221,13 @@ async function launch() {
 
     <div class="py-6 text-center">
       <div class="cv-pi-segment mx-auto h-11 w-[260px] grid-cols-2">
-        <button class="cv-pi-segment-item" type="button" @click="router.push(`/launch/${characterId}/offline`)">
+        <button
+          class="cv-pi-segment-item"
+          type="button"
+          :disabled="isViduCharacter"
+          :title="isViduCharacter ? t('offlineVideo.viduUnsupported') : ''"
+          @click="router.push(`/launch/${characterId}/offline`)"
+        >
           {{ t('offlineVideo.offlineMode') }}
         </button>
         <button class="cv-pi-segment-item cv-pi-segment-item--active" type="button">
@@ -291,6 +301,10 @@ async function launch() {
                 <p class="row-label">{{ row.label }}</p>
                 <p class="row-value" :title="row.value">{{ row.value }}</p>
               </div>
+            </div>
+
+            <div v-else-if="isViduCharacter" class="notice success">
+              {{ t('launch.viduNativeRuntime') }}
             </div>
 
             <div v-for="section in configSections" :key="section.title" class="config-card">

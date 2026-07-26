@@ -65,6 +65,15 @@ export interface CreateSessionResponse {
     audio_sample_rate: number
     audio_max_pcm_bytes: number
   }
+  vidu?: {
+    live_id: string
+    app_id: string
+    channel_id: string
+    user_id: string
+    token: string
+    token_expire_at: number
+    live_duration: number
+  }
   livekit_url?: string
   livekit_token?: string
   idle_video_url?: string
@@ -107,8 +116,8 @@ export async function getComponents(): Promise<ComponentsResponse> {
   return request('/components')
 }
 
-export async function deleteSession(sessionId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/sessions/${sessionId}`, { method: 'DELETE' })
+export async function deleteSession(sessionId: string, keepalive = false): Promise<void> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}`, { method: 'DELETE', keepalive })
   if (!res.ok && res.status !== 404) throw new Error(`Failed to delete session: ${res.status}`)
 }
 

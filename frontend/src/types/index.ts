@@ -32,7 +32,7 @@ export interface KnowledgeUploadSkippedFile {
 }
 
 // Character data model
-export type AvatarBackend = 'local_image' | 'baidu_xiling' | 'xunfei'
+export type AvatarBackend = 'local_image' | 'baidu_xiling' | 'xunfei' | 'vidu'
 
 export interface BaiduXilingCharacterConfig {
   figure_id: string
@@ -535,6 +535,7 @@ export const QWEN_OMNI_VOICE_OPTIONS: VoiceOption[] = [
   { label: '阿樸伯 (Joseph Chen)', value: 'Joseph Chen' },
   { label: '陕西 - 秦川 (Marcus)', value: 'Marcus' },
   { label: '南京 - 老李 (Li)', value: 'Li' },
+  { label: '粤语 - 阿清 (Kiki)', value: 'Kiki' },
   { label: '粤语 - 阿强 (Rocky)', value: 'Rocky' },
   { label: '素熙 (Sohee)', value: 'Sohee' },
   { label: '莱恩 (Lenn)', value: 'Lenn' },

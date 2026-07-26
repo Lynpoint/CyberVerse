@@ -707,6 +707,11 @@ onMounted(async () => {
     console.warn('Failed to load components:', err)
   }
   await store.fetchOne(characterId.value).catch(() => {})
+  if (store.current?.avatar_backend === 'vidu') {
+    saveLaunchWorkspaceMode('live')
+    await router.replace(`/launch/${characterId.value}/live`)
+    return
+  }
   loadOutputSettings()
   loadOfflineTTSPreference()
   await loadLocalVideoOutputSettings()

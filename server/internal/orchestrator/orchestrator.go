@@ -109,6 +109,13 @@ type xunfeiAvatarRuntime interface {
 	Protocol() string
 }
 
+type viduSessionRuntime interface {
+	Connect(context.Context) error
+	SendText(string) error
+	Close(context.Context) error
+	Ready() bool
+}
+
 func newVoiceAVSyncBuffer(maxBufferSamples int) *voiceAVSyncBuffer {
 	if maxBufferSamples <= 0 {
 		maxBufferSamples = voiceMaxPCMBufferSamples
@@ -664,6 +671,7 @@ type Orchestrator struct {
 	silentMu       sync.Mutex
 	silentRuntimes map[string]*silentAvatarRuntime
 	xunfeiSessions map[string]xunfeiAvatarRuntime
+	viduSessions   map[string]viduSessionRuntime
 	mu             sync.RWMutex
 }
 
@@ -678,6 +686,7 @@ func New(inferenceClient inference.InferenceService, hub *ws.Hub, sessionMgr *Se
 		directPeers:    make(map[string]*direct.DirectPeer),
 		silentRuntimes: make(map[string]*silentAvatarRuntime),
 		xunfeiSessions: make(map[string]xunfeiAvatarRuntime),
+		viduSessions:   make(map[string]viduSessionRuntime),
 		recorder:       recorder,
 	}
 	if len(pipelineCfg) > 0 {
@@ -1556,6 +1565,110 @@ func (o *Orchestrator) stopAllXunfeiAvatarSessions() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		if err := runtime.Stop(ctx); err != nil {
 			log.Printf("Xunfei avatar stop failed session=%s: %v", sessionID, err)
+		}
+		cancel()
+	}
+}
+
+func (o *Orchestrator) RegisterViduSession(sessionID string, runtime viduSessionRuntime) {
+	if o == nil || strings.TrimSpace(sessionID) == "" || runtime == nil {
+		return
+	}
+	o.mu.Lock()
+	if o.viduSessions == nil {
+		o.viduSessions = make(map[string]viduSessionRuntime)
+	}
+	previous := o.viduSessions[sessionID]
+	o.viduSessions[sessionID] = runtime
+	o.mu.Unlock()
+	if previous != nil && previous != runtime {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = previous.Close(ctx)
+		cancel()
+	}
+}
+
+func (o *Orchestrator) viduSession(sessionID string) viduSessionRuntime {
+	if o == nil {
+		return nil
+	}
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.viduSessions[sessionID]
+}
+
+func (o *Orchestrator) ConnectViduSession(ctx context.Context, sessionID string) (bool, error) {
+	runtime := o.viduSession(sessionID)
+	if runtime == nil {
+		return false, nil
+	}
+	if err := runtime.Connect(ctx); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
+func (o *Orchestrator) SendViduTextInput(sessionID, text string) (bool, error) {
+	runtime := o.viduSession(sessionID)
+	if runtime == nil {
+		return false, nil
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return true, nil
+	}
+	if err := runtime.SendText(text); err != nil {
+		return true, err
+	}
+	session, err := o.sessionMgr.Get(sessionID)
+	if err != nil {
+		return true, err
+	}
+	session.AddMessage(ChatMessage{Role: "user", Content: text})
+	return true, nil
+}
+
+func (o *Orchestrator) ViduSessionReady(sessionID string) bool {
+	runtime := o.viduSession(sessionID)
+	return runtime != nil && runtime.Ready()
+}
+
+func (o *Orchestrator) stopViduSession(sessionID string) viduSessionRuntime {
+	if o == nil {
+		return nil
+	}
+	o.mu.Lock()
+	runtime := o.viduSessions[sessionID]
+	delete(o.viduSessions, sessionID)
+	o.mu.Unlock()
+	if runtime != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := runtime.Close(ctx); err != nil {
+			log.Printf("Vidu S1 stop failed session=%s: %v", sessionID, err)
+		}
+		cancel()
+	}
+	return runtime
+}
+
+func (o *Orchestrator) stopAllViduSessions() {
+	if o == nil {
+		return
+	}
+	o.mu.Lock()
+	runtimes := make(map[string]viduSessionRuntime, len(o.viduSessions))
+	for sessionID, runtime := range o.viduSessions {
+		runtimes[sessionID] = runtime
+	}
+	o.viduSessions = make(map[string]viduSessionRuntime)
+	o.mu.Unlock()
+	for sessionID, runtime := range runtimes {
+		if runtime == nil {
+			continue
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := runtime.Close(ctx); err != nil {
+			log.Printf("Vidu S1 stop failed session=%s: %v", sessionID, err)
 		}
 		cancel()
 	}
@@ -4469,6 +4582,7 @@ func (o *Orchestrator) teardownSessionResources(sessionID string, session *Sessi
 		runtime.wait(3 * time.Second)
 	}
 	o.stopXunfeiAvatarSession(sessionID)
+	o.stopViduSession(sessionID)
 
 	// Disconnect media peer
 	o.mu.Lock()
@@ -4497,6 +4611,7 @@ func (o *Orchestrator) teardownSessionResources(sessionID string, session *Sessi
 func (o *Orchestrator) TeardownAll() {
 	o.stopAllSilentAvatarRuntimes()
 	o.stopAllXunfeiAvatarSessions()
+	o.stopAllViduSessions()
 
 	o.mu.Lock()
 	peers := make(map[string]mediapeer.MediaPeer, len(o.peers))

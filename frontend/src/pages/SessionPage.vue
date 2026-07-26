@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import VideoPlayer from '../components/VideoPlayer.vue'
 import BaiduXilingPlayer from '../components/BaiduXilingPlayer.vue'
 import XunfeiAvatarPlayer from '../components/XunfeiAvatarPlayer.vue'
+import ViduS1Player from '../components/ViduS1Player.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import { useWebRTC } from '../composables/useWebRTC'
 import { useDirectWebRTC } from '../composables/useDirectWebRTC'
@@ -26,6 +27,7 @@ const sessionId = computed(() => route.params.id as string)
 const videoPlayerRef = ref<InstanceType<typeof VideoPlayer> | null>(null)
 const baiduPlayerRef = ref<InstanceType<typeof BaiduXilingPlayer> | null>(null)
 const xunfeiPlayerRef = ref<InstanceType<typeof XunfeiAvatarPlayer> | null>(null)
+const viduPlayerRef = ref<InstanceType<typeof ViduS1Player> | null>(null)
 const pendingBaiduAudioEvents: BaiduXilingAudioEvent[] = []
 const sessionVideoShellRef = ref<HTMLElement | null>(null)
 const avatarFallbackBadgeRef = ref<HTMLElement | null>(null)
@@ -59,13 +61,15 @@ const launchState = ref(loadSessionLaunchState(sessionId.value) || queryLaunchSt
 const streamingMode = launchState.value?.streaming_mode || 'direct'
 const baiduXilingConfig = computed(() => launchState.value?.baidu_xiling)
 const xunfeiConfig = computed(() => launchState.value?.xunfei)
+const viduConfig = computed(() => launchState.value?.vidu)
 const isBaiduXilingSession = computed(() => !!baiduXilingConfig.value)
 const isXunfeiSession = computed(() => !!xunfeiConfig.value)
-const isExternalAvatarSession = computed(() => isBaiduXilingSession.value || isXunfeiSession.value)
+const isViduSession = computed(() => !!viduConfig.value)
+const isExternalAvatarSession = computed(() => isBaiduXilingSession.value || isXunfeiSession.value || isViduSession.value)
 const audioInputConfig = computed(() => launchState.value?.audio_input)
-const hasAudioInputCapability = computed(() => audioInputConfig.value?.enabled ?? true)
+const hasAudioInputCapability = computed(() => isViduSession.value || (audioInputConfig.value?.enabled ?? true))
 const usesMediaPeerOutput = computed(() => !isExternalAvatarSession.value)
-const shouldUseMediaPeer = computed(() => usesMediaPeerOutput.value || hasAudioInputCapability.value)
+const shouldUseMediaPeer = computed(() => !isViduSession.value && (usesMediaPeerOutput.value || hasAudioInputCapability.value))
 
 function truthyDebugFlag(value: unknown): boolean {
   const raw = Array.isArray(value) ? value[0] : value
@@ -121,11 +125,27 @@ const baiduXilingConnectionState = ref<BaiduXilingConnectionState>({ rtcReady: f
 const baiduAvatarError = ref('')
 const xunfeiConnectionState = ref({ streamReady: false, autoplayBlocked: false })
 const xunfeiAvatarError = ref('')
+const viduConnectionState = ref({
+  rtcReady: false,
+  streamReady: false,
+  audioReady: false,
+  autoplayBlocked: false,
+  microphoneEnabled: false,
+  cameraEnabled: false,
+  remoteSpeechDetected: false,
+})
+const viduControlReady = ref(false)
+const viduControlInitSent = ref(false)
+const viduRTCJoined = ref(false)
+const viduAvatarError = ref('')
 const showAvatarFallbackDetails = ref(false)
 const outputMutedVisual = computed(() => isExternalAvatarSession.value ? baiduOutputMuted.value : isOutputMuted.value)
 const outputButtonTitle = computed(() => {
   if (isXunfeiSession.value && xunfeiConnectionState.value.autoplayBlocked) {
     return t('session.xunfeiAutoplayBlocked')
+  }
+  if (isViduSession.value && viduConnectionState.value.autoplayBlocked) {
+    return t('session.viduEnableAudio')
   }
   return outputMutedVisual.value ? t('session.outputUnmute') : t('session.outputMute')
 })
@@ -145,6 +165,13 @@ const baiduAvatarNotice = computed(() => {
   return ''
 })
 const mediaConnected = computed(() => {
+  if (isViduSession.value) {
+    return chatConnected.value
+      && viduConnectionState.value.rtcReady
+      && viduConnectionState.value.streamReady
+      && viduControlReady.value
+      && !viduAvatarError.value
+  }
   if (isBaiduXilingSession.value) {
     const voiceReady = !shouldUseMediaPeer.value || connectionState.value === 'connected'
     return chatConnected.value && voiceReady && (baiduAvatarReady.value || baiduVoiceFallbackActive.value)
@@ -185,10 +212,32 @@ const {
   loadHistory,
   registerSignalingHandler,
   registerBaiduXilingAudioHandler,
+  registerViduControlHandler,
   sendSignaling,
   sendWSMessage,
   isConnected: chatConnected,
 } = useChat(() => sessionId.value)
+
+registerViduControlHandler((event) => {
+  if (event.type === 'vidu_ready') {
+    viduControlReady.value = true
+    viduAvatarError.value = ''
+    return
+  }
+  viduControlReady.value = false
+  viduAvatarError.value = event.message || (event.type === 'vidu_hangup'
+    ? t('session.viduDisconnected')
+    : t('session.viduConnectionError'))
+})
+
+function notifyViduRTCReady() {
+  if (!isViduSession.value || !chatConnected.value || !viduRTCJoined.value || viduControlInitSent.value) return
+  if (sendWSMessage({ type: 'vidu_rtc_ready' })) {
+    viduControlInitSent.value = true
+  }
+}
+
+watch(chatConnected, notifyViduRTCReady)
 
 registerBaiduXilingAudioHandler((event) => {
   if (baiduVoiceFallbackActive.value) {
@@ -256,6 +305,7 @@ type ChatSidebarResizeState = {
 
 let chatSidebarResizeState: ChatSidebarResizeState | null = null
 let baiduAvatarReadyTimer: ReturnType<typeof window.setTimeout> | null = null
+let viduSessionTeardownRequested = false
 const baiduVoiceFallbackEvents: BaiduXilingAudioEvent[] = []
 let baiduVoiceAudioContext: AudioContext | null = null
 let baiduVoiceGainNode: GainNode | null = null
@@ -459,6 +509,25 @@ function handleXunfeiStateChanged(state: { streamReady: boolean; autoplayBlocked
 
 function handleXunfeiRenderError(payload: { message?: string }) {
   xunfeiAvatarError.value = payload.message || t('session.xunfeiRenderError')
+}
+
+function handleViduStateChanged(state: typeof viduConnectionState.value) {
+  viduConnectionState.value = state
+}
+
+function handleViduRTCReady() {
+  viduRTCJoined.value = true
+  notifyViduRTCReady()
+}
+
+function handleViduRTCFailed(payload: { message: string }) {
+  viduAvatarError.value = payload.message || t('session.viduConnectionError')
+  sendWSMessage({ type: 'vidu_rtc_failed' })
+  void requestViduSessionTeardown(true)
+}
+
+function handleViduRenderError(payload: { message: string }) {
+  viduAvatarError.value = payload.message || t('session.viduConnectionError')
 }
 
 function markBaiduSessionActive() {
@@ -805,10 +874,14 @@ onMounted(async () => {
   window.addEventListener('resize', keepVisualPreviewInBounds)
   window.addEventListener('resize', keepChatSidebarWidthInBounds)
   window.addEventListener('pointerdown', handleAvatarFallbackGlobalPointerDown)
+  if (isViduSession.value) {
+    window.addEventListener('pagehide', handleViduPageHide)
+  }
 
   const startedAt = Date.now()
 
   await chatConnect()
+  notifyViduRTCReady()
 
   // Load conversation history for this character
   if (characterId.value) {
@@ -854,8 +927,25 @@ onUnmounted(() => {
   window.removeEventListener('resize', keepVisualPreviewInBounds)
   window.removeEventListener('resize', keepChatSidebarWidthInBounds)
   window.removeEventListener('pointerdown', handleAvatarFallbackGlobalPointerDown)
+  window.removeEventListener('pagehide', handleViduPageHide)
+  if (isViduSession.value) {
+    viduPlayerRef.value?.disconnect()
+    void requestViduSessionTeardown(true)
+  }
   visualInput.stop(undefined, true)
 })
+
+function requestViduSessionTeardown(keepalive: boolean): Promise<void> {
+  if (!isViduSession.value || !sessionId.value || viduSessionTeardownRequested) return Promise.resolve()
+  viduSessionTeardownRequested = true
+  clearSessionLaunchState(sessionId.value)
+  return deleteSession(sessionId.value, keepalive).catch(() => {})
+}
+
+function handleViduPageHide() {
+  viduPlayerRef.value?.disconnect()
+  void requestViduSessionTeardown(true)
+}
 
 async function handleDisconnect() {
   visualInput.stop(undefined, true)
@@ -863,9 +953,16 @@ async function handleDisconnect() {
     webrtcDisconnect()
   }
   chatDisconnect()
+  if (isViduSession.value) {
+    viduPlayerRef.value?.disconnect()
+  }
   const returnPath = launchState.value?.return_path || '/characters'
   if (sessionId.value) {
-    await deleteSession(sessionId.value).catch(() => {})
+    if (isViduSession.value) {
+      await requestViduSessionTeardown(false)
+    } else {
+      await deleteSession(sessionId.value).catch(() => {})
+    }
     clearSessionLaunchState(sessionId.value)
   }
   router.push(returnPath)
@@ -882,6 +979,11 @@ function toggleChatPanel() {
 }
 
 async function handleOutputButtonClick() {
+  if (isViduSession.value) {
+    baiduOutputMuted.value = !baiduOutputMuted.value
+    viduPlayerRef.value?.muteAudio(baiduOutputMuted.value)
+    return
+  }
   if (isBaiduXilingSession.value) {
     baiduOutputMuted.value = !baiduOutputMuted.value
     applyBaiduVoiceOutputMuted()
@@ -902,6 +1004,22 @@ async function handleOutputButtonClick() {
   }
   await toggleOutputMute()
 }
+
+function handleMicrophoneClick() {
+  if (isViduSession.value) {
+    viduPlayerRef.value?.toggleMicrophone()
+    return
+  }
+  toggleMute()
+}
+
+function handleViduCameraClick() {
+  void viduPlayerRef.value?.toggleCamera()
+}
+
+const microphoneMutedVisual = computed(() =>
+  isViduSession.value ? !viduConnectionState.value.microphoneEnabled : isMuted.value
+)
 
 function formatTime(s: number): string {
   const m = Math.floor(s / 60)
@@ -934,6 +1052,16 @@ function micDockBarHeight(level: number): string {
         class="w-full flex-1 min-h-0"
         @state-changed="handleXunfeiStateChanged"
         @render-error="handleXunfeiRenderError"
+      />
+      <ViduS1Player
+        v-else-if="isViduSession && viduConfig"
+        ref="viduPlayerRef"
+        :config="viduConfig"
+        class="w-full flex-1 min-h-0"
+        @state-changed="handleViduStateChanged"
+        @rtc-ready="handleViduRTCReady"
+        @rtc-failed="handleViduRTCFailed"
+        @render-error="handleViduRenderError"
       />
       <VideoPlayer
         v-else
@@ -1077,6 +1205,10 @@ function micDockBarHeight(level: number): string {
         {{ baiduAvatarNotice }}
       </div>
 
+      <div v-if="isViduSession && viduAvatarError" class="baidu-avatar-status error">
+        {{ viduAvatarError }}
+      </div>
+
       <div
         v-if="hasVisualInputCapability && visualInput.error.value"
         class="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 max-w-[min(90vw,28rem)] px-3 py-2 bg-black/80 border border-red-400/30 text-red-100 text-xs rounded-cv-md"
@@ -1127,7 +1259,7 @@ function micDockBarHeight(level: number): string {
 
       <!-- Control bar (bottom center, floating) -->
       <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-2.5 bg-black/70 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.3)] z-10 overflow-hidden">
-        <div v-if="hasAudioInputCapability" class="dock-waveform-background" aria-hidden="true">
+        <div v-if="hasAudioInputCapability && !isViduSession" class="dock-waveform-background" aria-hidden="true">
           <span
             v-for="(level, index) in micBarLevels"
             :key="index"
@@ -1154,6 +1286,22 @@ function micDockBarHeight(level: number): string {
           </svg>
         </button>
 
+        <button
+          v-if="isViduSession"
+          type="button"
+          :title="viduConnectionState.cameraEnabled ? t('session.cameraOff') : t('session.cameraOn')"
+          :aria-label="viduConnectionState.cameraEnabled ? t('session.cameraOff') : t('session.cameraOn')"
+          class="relative z-10 w-12 h-12 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+          :class="viduConnectionState.cameraEnabled ? 'bg-cv-accent text-white' : 'bg-white/10 text-cv-text hover:bg-white/16'"
+          @click="handleViduCameraClick"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3.5 6.5A2.5 2.5 0 0 1 6 4h5a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 11 16H6a2.5 2.5 0 0 1-2.5-2.5v-7Z" />
+            <path d="m13.5 8 3-2v8l-3-2" stroke-linecap="round" stroke-linejoin="round" />
+            <path v-if="!viduConnectionState.cameraEnabled" d="M3 3l14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+
         <!-- Digital human output mute; also unlocks browser audio when needed. -->
         <button
           type="button"
@@ -1172,13 +1320,13 @@ function micDockBarHeight(level: number): string {
 
         <!-- Mic button -->
         <button v-if="hasAudioInputCapability"
-                @click="toggleMute()"
+                @click="handleMicrophoneClick"
                 class="relative z-10 w-12 h-12 rounded-full flex items-center justify-center transition-colors cursor-pointer"
-                :class="isMuted ? 'bg-cv-danger' : 'bg-cv-accent shadow-[0_2px_8px_rgba(59,130,246,0.3)]'">
+                :class="microphoneMutedVisual ? 'bg-cv-danger' : 'bg-cv-accent shadow-[0_2px_8px_rgba(59,130,246,0.3)]'">
           <svg class="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="7" y="2" width="6" height="10" rx="3" />
             <path d="M4 10a6 6 0 0012 0M10 16v2M7 18h6" stroke-linecap="round" />
-            <path v-if="isMuted" d="M3 3l14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path v-if="microphoneMutedVisual" d="M3 3l14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
 

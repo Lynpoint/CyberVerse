@@ -158,6 +158,10 @@ func (r *Router) handleCreateOfflineVideo(w http.ResponseWriter, req *http.Reque
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "text input is required"})
 		return
 	}
+	if ch.AvatarBackend == character.AvatarBackendVidu {
+		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Vidu S1 supports live streaming sessions only"})
+		return
+	}
 	if ch.AvatarBackend == character.AvatarBackendBaiduXiling {
 		r.handleCreateBaiduXilingOfflineVideo(w, req, ch, inputType, text)
 		return

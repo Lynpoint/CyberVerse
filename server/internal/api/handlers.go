@@ -32,6 +32,7 @@ type CreateSessionResponse struct {
 	AudioInput    *AudioInputResponse        `json:"audio_input,omitempty"`
 	BaiduXiling   *baiduXilingSessionConfig  `json:"baidu_xiling,omitempty"`
 	Xunfei        *xunfeiAvatarSessionConfig `json:"xunfei,omitempty"`
+	Vidu          *viduSessionConfig         `json:"vidu,omitempty"`
 	LiveKitURL    string                     `json:"livekit_url,omitempty"`
 	Token         string                     `json:"livekit_token,omitempty"`
 	IdleVideoURL  string                     `json:"idle_video_url,omitempty"`
@@ -216,11 +217,18 @@ func (r *Router) handleCreateSession(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
+	if sessionCharacter != nil && sessionCharacter.AvatarBackend == character.AvatarBackendVidu {
+		if strings.TrimSpace(sessionCharacter.ActiveImage) == "" && strings.TrimSpace(sessionCharacter.AvatarImage) == "" {
+			writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "Vidu S1 requires an uploaded character image"})
+			return
+		}
+	}
 
 	isBaiduXilingCharacter := sessionCharacter != nil && sessionCharacter.AvatarBackend == character.AvatarBackendBaiduXiling
 	isXunfeiCharacter := sessionCharacter != nil && sessionCharacter.AvatarBackend == character.AvatarBackendXunfei
+	isViduCharacter := sessionCharacter != nil && sessionCharacter.AvatarBackend == character.AvatarBackendVidu
 
-	if r.orch != nil && body.CharacterID != "" && r.orch.AvatarEnabled() && !isBaiduXilingCharacter && !isXunfeiCharacter {
+	if r.orch != nil && body.CharacterID != "" && r.orch.AvatarEnabled() && !isBaiduXilingCharacter && !isXunfeiCharacter && !isViduCharacter {
 		activeModel, err := r.activeAvatarModel(req.Context())
 		if err != nil {
 			writeJSON(w, http.StatusServiceUnavailable, ErrorResponse{Error: err.Error()})
@@ -280,6 +288,10 @@ func (r *Router) handleCreateSession(w http.ResponseWriter, req *http.Request) {
 	}
 	resp.VisualInput = r.visualInputResponseForSession(session)
 	resp.AudioInput = r.audioInputResponseForSession(session)
+	if isViduCharacter {
+		resp.VisualInput = nil
+		resp.AudioInput = &AudioInputResponse{Enabled: false}
+	}
 
 	useCachedIdleVideo := resp.IdleStrategy != config.AvatarIdleStrategySilentInference
 	if isBaiduXilingCharacter {
@@ -316,6 +328,36 @@ func (r *Router) handleCreateSession(w http.ResponseWriter, req *http.Request) {
 		}
 		resp.Xunfei = xunfeiConfig
 		resp.IdleImageURL = characterStandbyImageURL(sessionCharacter)
+	} else if isViduCharacter {
+		if r.orch == nil {
+			r.sessionMgr.Delete(sessionID)
+			writeJSON(w, http.StatusServiceUnavailable, ErrorResponse{Error: "Vidu S1 sessions require the orchestrator"})
+			return
+		}
+		startCtx, cancel := context.WithTimeout(req.Context(), 2*time.Minute)
+		defer cancel()
+		viduRuntime, viduConfig, err := r.startViduSession(startCtx, sessionCharacter)
+		if err != nil {
+			r.sessionMgr.Delete(sessionID)
+			writeJSON(w, http.StatusServiceUnavailable, ErrorResponse{Error: err.Error()})
+			return
+		}
+		viduRuntime.SetOnLost(func(reason string) {
+			log.Printf("Vidu S1 session lost session=%s reason=%s", sessionID, reason)
+			r.sessionMgr.Delete(sessionID)
+		})
+		r.orch.RegisterViduSession(sessionID, viduRuntime)
+		resp.Vidu = viduConfig
+		resp.IdleImageURL = characterStandbyImageURL(sessionCharacter)
+		go func() {
+			timer := time.NewTimer(45 * time.Second)
+			defer timer.Stop()
+			<-timer.C
+			if !r.orch.ViduSessionReady(sessionID) {
+				log.Printf("Vidu S1 client RTC readiness timeout session=%s", sessionID)
+				r.sessionMgr.Delete(sessionID)
+			}
+		}()
 	} else if r.orch != nil && body.CharacterID != "" && useCachedIdleVideo && (sessionCharacter == nil || sessionCharacter.AvatarBackend == character.AvatarBackendLocalImage) {
 		target := r.currentIdleVideoTarget(req.Context())
 		// Return any already-cached idle video URLs immediately; generation happens in background.
@@ -369,7 +411,10 @@ func (r *Router) handleCreateSession(w http.ResponseWriter, req *http.Request) {
 		streamingMode := r.orch.StreamingMode()
 		resp.StreamingMode = streamingMode
 		resp.AvatarEnabled = r.orch.AvatarEnabled()
-		setupMediaPeer := resp.AudioInput != nil && resp.AudioInput.Enabled
+		if isViduCharacter {
+			resp.AvatarEnabled = true
+		}
+		setupMediaPeer := !isViduCharacter && resp.AudioInput != nil && resp.AudioInput.Enabled
 		if setupMediaPeer {
 			// Generate LiveKit token only in livekit mode.
 			if streamingMode == "livekit" && r.roomMgr != nil && r.cfg != nil {
@@ -510,6 +555,15 @@ func (r *Router) handleSendMessage(w http.ResponseWriter, req *http.Request) {
 
 	// Trigger the standard pipeline via orchestrator
 	if r.orch != nil {
+		if handled, err := r.orch.SendViduTextInput(id, body.Text); handled {
+			if err != nil {
+				log.Printf("Failed to handle Vidu S1 text input for session %s: %v", id, err)
+				writeJSON(w, http.StatusConflict, ErrorResponse{Error: err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusAccepted, map[string]string{"status": "queued"})
+			return
+		}
 		if err := r.orch.HandleTextInput(context.Background(), id, body.Text); err != nil {
 			log.Printf("Failed to handle text input for session %s: %v", id, err)
 			writeJSON(w, http.StatusInternalServerError, ErrorResponse{Error: "failed to process message"})
@@ -574,11 +628,41 @@ func (r *Router) handleWebSocket(w http.ResponseWriter, req *http.Request) {
 			case "text_input":
 				if r.orch != nil && msg.Text != "" {
 					go func() {
+						if handled, err := r.orch.SendViduTextInput(sessionID, msg.Text); handled {
+							if err != nil {
+								log.Printf("Failed to handle Vidu S1 WS text input for session %s: %v", sessionID, err)
+								r.wsHub.BroadcastJSON(sessionID, map[string]any{"type": "vidu_error", "message": err.Error()})
+							}
+							return
+						}
 						// Detach from request context to avoid cancelling an in-flight text turn.
 						if err := r.orch.HandleTextInput(context.Background(), sessionID, msg.Text); err != nil {
 							log.Printf("Failed to handle WS text input for session %s: %v", sessionID, err)
 						}
 					}()
+				}
+			case "vidu_rtc_ready":
+				if r.orch != nil {
+					go func() {
+						ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+						defer cancel()
+						handled, err := r.orch.ConnectViduSession(ctx, sessionID)
+						if !handled {
+							return
+						}
+						if err != nil {
+							log.Printf("Vidu S1 control connection failed session=%s: %v", sessionID, err)
+							r.wsHub.BroadcastJSON(sessionID, map[string]any{"type": "vidu_error", "message": err.Error()})
+							r.sessionMgr.Delete(sessionID)
+							return
+						}
+						r.wsHub.BroadcastJSON(sessionID, map[string]any{"type": "vidu_ready"})
+					}()
+				}
+			case "vidu_rtc_failed":
+				if r.orch != nil {
+					r.wsHub.BroadcastJSON(sessionID, map[string]any{"type": "vidu_error", "message": "Vidu S1 RTC connection failed"})
+					r.sessionMgr.Delete(sessionID)
 				}
 			case "interrupt":
 				if r.orch != nil {

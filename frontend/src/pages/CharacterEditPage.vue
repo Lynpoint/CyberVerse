@@ -105,6 +105,8 @@ const visibleImages = computed(() =>
 
 const isBaiduXilingAvatar = computed(() => form.value.avatar_backend === 'baidu_xiling')
 const isLocalAvatar = computed(() => form.value.avatar_backend === 'local_image')
+const isViduAvatar = computed(() => form.value.avatar_backend === 'vidu')
+const usesUploadedAvatar = computed(() => isLocalAvatar.value || isViduAvatar.value)
 const baiduFigureId = computed({
   get: () => form.value.baidu_xiling?.figure_id || '',
   set: (value: string) => {
@@ -170,6 +172,9 @@ const hasRequiredAvatarConfig = computed(() => {
   if (form.value.avatar_backend === 'xunfei') {
     return !!xunfeiAvatarId.value.trim()
   }
+  if (form.value.avatar_backend === 'vidu') {
+    return isEdit.value ? visibleImages.value.length > 0 : pendingFiles.value.length > 0
+  }
   return true
 })
 const avatarBackendModel = computed({
@@ -180,6 +185,7 @@ const avatarBackendOptions = computed(() => [
   { label: t('characterEdit.localAvatar'), value: 'local_image' },
   { label: t('characterEdit.baiduDigitalHuman'), value: 'baidu_xiling' },
   { label: t('characterEdit.xunfeiDigitalHuman'), value: 'xunfei' },
+  { label: t('characterEdit.viduS1'), value: 'vidu' },
 ])
 const trimmedCustomVoiceType = computed(() => customVoiceType.value.trim())
 const selectedTTS = computed(() => form.value.components?.tts || DEFAULT_COMPONENTS.tts)
@@ -282,7 +288,9 @@ const officialVoiceOptions = computed(() => localizedVoiceOptions(
 const openAIVoiceOptions = computed(() => localizedVoiceOptions(OPENAI_VOICE_OPTIONS, locale.value))
 const canSave = computed(() =>
   !!form.value.name.trim() && hasRequiredAvatarConfig.value && (
-    usesDoubaoVoice.value
+    isViduAvatar.value
+      ? isQwenOmniVoiceType(form.value.voice_type)
+      : usesDoubaoVoice.value
       ? (voiceMode.value === 'official' || !!trimmedCustomVoiceType.value)
       : !!form.value.voice_type.trim()
   )
@@ -383,6 +391,7 @@ function normalizeMode(mode?: string): CharacterForm['mode'] {
 function normalizeAvatarBackend(backend?: string): AvatarBackend {
   if (backend === 'baidu_xiling') return 'baidu_xiling'
   if (backend === 'xunfei') return 'xunfei'
+  if (backend === 'vidu') return 'vidu'
   return 'local_image'
 }
 
@@ -417,6 +426,9 @@ function selectAvatarBackend(backend: AvatarBackend) {
   form.value.avatar_backend = backend
   baiduLookupError.value = ''
   xunfeiLookupError.value = ''
+  if (backend === 'vidu' && !isQwenOmniVoiceType(form.value.voice_type)) {
+    form.value.voice_type = DEFAULT_QWEN_OMNI_VOICE
+  }
   if (backend === 'baidu_xiling' && !form.value.baidu_xiling) {
     form.value.baidu_xiling = emptyBaiduXilingConfig()
   }
@@ -679,6 +691,12 @@ function setCosyVoiceMode(mode: 'official' | 'custom') {
 }
 
 function resolveVoiceType() {
+  if (isViduAvatar.value) {
+    const voice = form.value.voice_type.trim()
+    form.value.voice_type = isQwenOmniVoiceType(voice) ? voice : DEFAULT_QWEN_OMNI_VOICE
+    return form.value.voice_type
+  }
+
   if (usesQwenOmniVoice.value) {
     const voice = form.value.voice_type.trim() || DEFAULT_QWEN_OMNI_VOICE
     form.value.voice_type = voice
@@ -828,7 +846,13 @@ onMounted(async () => {
           tags: [...c.tags],
           agent_extensions: normalizeAgentExtensions(c.agent_extensions),
         }
-        applyModeVoiceDefault(!form.value.voice_type)
+        if (isViduAvatar.value) {
+          if (!isQwenOmniVoiceType(form.value.voice_type)) {
+            form.value.voice_type = DEFAULT_QWEN_OMNI_VOICE
+          }
+        } else {
+          applyModeVoiceDefault(!form.value.voice_type)
+        }
         await nextTick()
       } finally {
         hydratingCharacter.value = false
@@ -850,7 +874,7 @@ async function loadImages() {
 }
 
 async function handleFileSelected(file: File, options?: { activate?: boolean }) {
-  if (form.value.avatar_backend !== 'local_image') return
+  if (!usesUploadedAvatar.value) return
   if (isEdit.value) {
     // Edit mode: upload immediately
     try {
@@ -944,10 +968,12 @@ async function save() {
     payload.voice_type = voiceType
     payload.components = normalizeComponents(payload.components)
     payload.agent_extensions = normalizeAgentExtensions(payload.agent_extensions)
-    payload.voice_provider = payload.mode === 'omni'
-      ? normalizeOmniProvider(payload.voice_provider)
-      : payload.components.tts
     payload.avatar_backend = normalizeAvatarBackend(payload.avatar_backend)
+    payload.voice_provider = payload.avatar_backend === 'vidu'
+      ? 'qwen_omni'
+      : payload.mode === 'omni'
+        ? normalizeOmniProvider(payload.voice_provider)
+        : payload.components.tts
     if (payload.avatar_backend === 'baidu_xiling') {
       payload.baidu_xiling = {
         ...(payload.baidu_xiling || emptyBaiduXilingConfig()),
@@ -990,7 +1016,7 @@ async function save() {
       await deleteCharacterImage(id, filename)
     }
 
-    if (payload.avatar_backend === 'local_image') {
+    if (payload.avatar_backend === 'local_image' || payload.avatar_backend === 'vidu') {
       // Upload all pending files
       for (const file of pendingFiles.value) {
         await uploadAvatar(id, file)
@@ -1037,6 +1063,9 @@ const pageTitle = computed(() =>
           <p v-if="isLocalAvatar" class="mt-2 text-[11px] leading-5 text-cv-text-muted">
             {{ t('characterEdit.localAvatarBackendHint') }}
           </p>
+          <p v-else-if="isViduAvatar" class="mt-2 text-[11px] leading-5 text-cv-text-muted">
+            {{ t('characterEdit.viduAvatarBackendHint') }}
+          </p>
           <p v-else-if="isBaiduXilingAvatar" class="mt-2 text-[11px] leading-5 text-cv-text-muted">
             <span>{{ t('characterEdit.baiduAvatarBackendHint') }}</span>
             <a
@@ -1059,7 +1088,7 @@ const pageTitle = computed(() =>
         </div>
 
         <AvatarUpload
-          v-if="isLocalAvatar"
+          v-if="usesUploadedAvatar"
           :use-face-crop="form.use_face_crop"
           :images="visibleImages"
           :character-id="isEdit ? characterId : undefined"
@@ -1167,7 +1196,7 @@ const pageTitle = computed(() =>
           v-if="isEdit"
           type="button"
           class="cv-pi-button cv-pi-button--compact mt-4 w-full"
-          @click="router.push(`/launch/${characterId}`)"
+          @click="router.push(isViduAvatar ? `/launch/${characterId}/live` : `/launch/${characterId}`)"
         >
           {{ t('characterEdit.openWorkspace') }}
         </button>
@@ -1211,6 +1240,32 @@ const pageTitle = computed(() =>
 
         <!-- Section 2: Component configuration -->
         <section class="bg-cv-surface border border-cv-border rounded-cv-lg p-6">
+          <template v-if="isViduAvatar">
+            <h2 class="text-base font-semibold text-cv-text mb-5">{{ t('characterEdit.viduVoiceConfig') }}</h2>
+            <label class="block">
+              <span class="text-[13px] font-medium text-cv-text-secondary">{{ t('characterEdit.lineVoice') }}</span>
+              <CvSelect
+                v-model="form.voice_type"
+                :options="qwenOmniVoiceOptions"
+                :searchable="true"
+                :search-placeholder="t('common.search')"
+                :empty-label="t('common.noResults')"
+                class="mt-1.5"
+              />
+              <p class="mt-2 text-[11px] leading-5 text-cv-text-muted">
+                {{ t('characterEdit.viduVoiceHint') }}
+                <a
+                  :href="QWEN_OMNI_VOICE_LIST_URL"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="underline underline-offset-2 transition-colors hover:text-cv-text"
+                >
+                  {{ t('characterEdit.qwenOmniVoiceList') }}
+                </a>
+              </p>
+            </label>
+          </template>
+          <template v-else>
           <div class="mb-5 flex flex-wrap items-center gap-3">
             <h2 class="text-base font-semibold text-cv-text">{{ t('characterEdit.components') }}</h2>
             <div class="relative flex items-center gap-2">
@@ -1746,6 +1801,7 @@ const pageTitle = computed(() =>
               </label>
             </div>
           </div>
+          </template>
         </section>
 
         <!-- Section 3: Persona and style -->

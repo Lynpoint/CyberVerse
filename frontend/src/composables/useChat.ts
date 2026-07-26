@@ -64,6 +64,11 @@ export interface BaiduXilingAudioEvent {
   turnSeq: number
 }
 
+export interface ViduControlEvent {
+  type: 'vidu_ready' | 'vidu_error' | 'vidu_hangup'
+  message: string
+}
+
 export function useChat(sessionId: () => string) {
   const ws = ref<WebSocket | null>(null)
   const messages = ref<ChatMessage[]>([])
@@ -96,6 +101,7 @@ export function useChat(sessionId: () => string) {
   // Signaling handler for Direct WebRTC mode
   let signalingHandler: ((data: any) => void) | null = null
   let baiduXilingAudioHandler: ((event: BaiduXilingAudioEvent) => void) | null = null
+  let viduControlHandler: ((event: ViduControlEvent) => void) | null = null
 
   function resetTransientState() {
     pipelineMode.value = null
@@ -154,6 +160,10 @@ export function useChat(sessionId: () => string) {
 
   function registerBaiduXilingAudioHandler(fn: (event: BaiduXilingAudioEvent) => void) {
     baiduXilingAudioHandler = fn
+  }
+
+  function registerViduControlHandler(fn: (event: ViduControlEvent) => void) {
+    viduControlHandler = fn
   }
 
   function asRecord(value: unknown): Record<string, unknown> {
@@ -627,6 +637,15 @@ export function useChat(sessionId: () => string) {
           break
         }
 
+        case 'vidu_ready':
+        case 'vidu_error':
+        case 'vidu_hangup':
+          viduControlHandler?.({
+            type: data.type,
+            message: readString(data.message),
+          })
+          break
+
         case 'visual_input_error':
         case 'visual_input_unsupported':
           console.warn('[CyberVerse]', data.message || data)
@@ -777,6 +796,7 @@ export function useChat(sessionId: () => string) {
     loadHistory,
     registerSignalingHandler,
     registerBaiduXilingAudioHandler,
+    registerViduControlHandler,
     sendSignaling,
     sendWSMessage,
   }

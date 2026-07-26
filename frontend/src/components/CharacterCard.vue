@@ -11,15 +11,24 @@ const props = defineProps<{ character: Character }>()
 const emit = defineEmits<{ delete: [id: string] }>()
 const isBaiduXiling = computed(() => props.character.avatar_backend === 'baidu_xiling')
 const isXunfei = computed(() => props.character.avatar_backend === 'xunfei')
-const isExternalAvatar = computed(() => isBaiduXiling.value || isXunfei.value)
+const isVidu = computed(() => props.character.avatar_backend === 'vidu')
+const isExternalAvatar = computed(() => isBaiduXiling.value || isXunfei.value || isVidu.value)
 const baiduFigureId = computed(() => props.character.baidu_xiling?.figure_id || '')
 const xunfeiAvatarId = computed(() => props.character.xunfei?.avatar_id || '')
 const externalAvatarLabel = computed(() =>
-  isXunfei.value ? t('characterCard.xunfeiDigitalHuman') : t('characterCard.baiduDigitalHuman')
+  isVidu.value
+    ? t('characterCard.viduS1')
+    : isXunfei.value
+      ? t('characterCard.xunfeiDigitalHuman')
+      : t('characterCard.baiduDigitalHuman')
 )
 const externalAvatarId = computed(() => isXunfei.value ? xunfeiAvatarId.value : baiduFigureId.value)
 const coverImage = computed(() =>
-  isExternalAvatar.value
+  isVidu.value
+    ? (props.character.active_image
+        ? `/api/v1/characters/${props.character.id}/images/${encodeURIComponent(props.character.active_image)}`
+        : props.character.avatar_image)
+    : isExternalAvatar.value
     ? (
         isXunfei.value
           ? (props.character.xunfei?.thumbnail_url || props.character.xunfei?.source_image_url || '')
@@ -40,7 +49,7 @@ function nameToGradient(name: string): string {
 }
 
 function launch() {
-  router.push(`/launch/${props.character.id}`)
+  router.push(isVidu.value ? `/launch/${props.character.id}/live` : `/launch/${props.character.id}`)
 }
 
 function edit() {

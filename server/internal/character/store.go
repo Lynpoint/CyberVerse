@@ -106,6 +106,7 @@ const DefaultIdleVideoProfile = "breathing10s_v1"
 const AvatarBackendLocalImage = "local_image"
 const AvatarBackendBaiduXiling = "baidu_xiling"
 const AvatarBackendXunfei = "xunfei"
+const AvatarBackendVidu = "vidu"
 
 func DefaultComponents() Components {
 	return Components{LLM: "qwen", ASR: "qwen", TTS: "qwen"}
@@ -157,6 +158,8 @@ func normalizeAvatarBackend(backend string) string {
 		return AvatarBackendBaiduXiling
 	case AvatarBackendXunfei:
 		return AvatarBackendXunfei
+	case AvatarBackendVidu:
+		return AvatarBackendVidu
 	default:
 		return AvatarBackendLocalImage
 	}
@@ -324,6 +327,11 @@ func normalizeAvatarFields(c *Character, fallback *Character) {
 			c.Xunfei = normalizeXunfeiConfig(fallback.Xunfei)
 		}
 		c.BaiduXiling = nil
+		return
+	}
+	if c.AvatarBackend == AvatarBackendVidu {
+		c.BaiduXiling = nil
+		c.Xunfei = nil
 		return
 	}
 	c.BaiduXiling = nil
