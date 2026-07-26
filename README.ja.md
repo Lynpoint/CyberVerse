@@ -84,8 +84,9 @@ CyberVerse は、ローカルのデジタルヒューマンモデルである Fl
 | FlashHead 1.3B | Pro | RTX 5090 | 1 | 464x464 | 20 | ✅ はい |
 | LiveAct 18B | — | RTX PRO 6000 | 2 | 320×480 | 20 | ✅ はい |
 | LiveAct 18B | — | RTX PRO 6000 | 1 | 256×417 | 20 | ✅ はい |
-| Baidu Xiling Digital Human | クラウド API | ローカル GPU 不要 | — | プラットフォーム/アバター設定による | プラットフォーム応答 | ✅ はい |
-| Xunfei Digital Human | クラウド API | ローカル GPU 不要 | — | プラットフォーム/アバター設定による | プラットフォーム応答 | ✅ はい |
+| [Vidu S1](https://www.vidu.cn/subscription/personal?bonus-code=GWCK5M) | クラウド API | ローカル GPU 不要 | — | 540P | 25 | ✅ はい |
+| [Baidu Xiling Digital Human](https://xiling.cloud.baidu.com/) | クラウド API | ローカル GPU 不要 | — | プラットフォーム/アバター設定による | プラットフォーム応答 | ✅ はい |
+| [Xunfei Digital Human](https://virtual-man.xfyun.cn/) | クラウド API | ローカル GPU 不要 | — | プラットフォーム/アバター設定による | プラットフォーム応答 | ✅ はい |
 
 ### PersonaAgent + SubAgent タスク
 
@@ -107,6 +108,7 @@ CyberVerse は multi-agent アーキテクチャを採用しています。Perso
 
 CyberVerse をすばやく試し、環境依存関係を手動で設定する手間を避けたい場合は、クラウドイメージから起動できます：
 
+- [Compshare CyberVerse イメージ](https://www.compshare.cn/images/hKNKJSOUwn5H)
 - [AutoDL CyberVerse イメージ](https://www.autodl.art/i/dsd2077/CyberVerse/CyberVerse)
 
 ローカルにデプロイする場合は、以下の手順に進んでください。

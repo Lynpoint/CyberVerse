@@ -85,8 +85,9 @@ CyberVerse integrates the local FlashHead and LiveAct digital-human models, and 
 | FlashHead 1.3B | Pro | RTX 5090 | 1 | 464x464 | 20 | ✅ Yes |
 | LiveAct 18B | — | RTX PRO 6000 | 2 | 320×480 | 20 | ✅ Yes |
 | LiveAct 18B | — | RTX PRO 6000 | 1 | 256×417 | 20 | ✅ Yes |
-| Baidu Xiling Digital Human | Cloud API | No local GPU required | — | Provider/figure config | Provider response | ✅ Yes |
-| Xunfei Digital Human | Cloud API | No local GPU required | — | Provider/figure config | Provider response | ✅ Yes |
+| [Vidu S1](https://www.vidu.cn/subscription/personal?bonus-code=GWCK5M) | Cloud API | No local GPU required | — | 540P | 25 | ✅ Yes |
+| [Baidu Xiling Digital Human](https://xiling.cloud.baidu.com/) | Cloud API | No local GPU required | — | Provider/figure config | Provider response | ✅ Yes |
+| [Xunfei Digital Human](https://virtual-man.xfyun.cn/) | Cloud API | No local GPU required | — | Provider/figure config | Provider response | ✅ Yes |
 
 ### PersonaAgent + SubAgent Tasks
 
@@ -108,6 +109,7 @@ Brain, voice, hearing, tools, memory, and face are all replaceable modules. Runt
 
 If you want to try CyberVerse quickly without setting up the environment dependencies manually, you can launch it from a cloud image:
 
+- [Compshare CyberVerse Image](https://www.compshare.cn/images/hKNKJSOUwn5H)
 - [AutoDL CyberVerse Image](https://www.autodl.art/i/dsd2077/CyberVerse/CyberVerse)
 
 For local deployment, continue with the installation steps below.

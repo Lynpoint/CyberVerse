@@ -84,8 +84,9 @@ CyberVerse 已集成 FlashHead、LiveAct 两个本地数字人模型，并支持
 | FlashHead 1.3B | Pro | RTX 5090 | 1 | 464x464 | 20 | ✅ 是 |
 | LiveAct 18B | — | RTX PRO 6000 | 2 | 320×480 | 20 | ✅ 是 |
 | LiveAct 18B | — | RTX PRO 6000 | 1 | 256×417 | 20 | ✅ 是 |
-| 百度曦灵数字人 | 云端 API | 无需本地 GPU | — | 由平台/形象配置决定 | 由平台返回 | ✅ 是 |
-| 讯飞数字人 | 云端 API | 无需本地 GPU | — | 由平台/形象配置决定 | 由平台返回 | ✅ 是 |
+| [Vidu S1](https://www.vidu.cn/subscription/personal?bonus-code=GWCK5M) | 云端 API | 无需本地 GPU | — | 540P | 25 | ✅ 是 |
+| [百度曦灵数字人](https://xiling.cloud.baidu.com/) | 云端 API | 无需本地 GPU | — | 由平台/形象配置决定 | 由平台返回 | ✅ 是 |
+| [讯飞数字人](https://virtual-man.xfyun.cn/) | 云端 API | 无需本地 GPU | — | 由平台/形象配置决定 | 由平台返回 | ✅ 是 |
 
 
 ### PersonaAgent + SubAgent 任务
@@ -108,6 +109,7 @@ CyberVerse 采用multi-agent架构：PersonaAgent 始终驻守前台，负责与
 
 如果你想快速体验 CyberVerse，避免手动配置环境依赖，可以从云端镜像启动：
 
+- [优云智算 CyberVerse 镜像](https://www.compshare.cn/images/hKNKJSOUwn5H)
 - [AutoDL CyberVerse 镜像](https://www.autodl.art/i/dsd2077/CyberVerse/CyberVerse)
 
 需要本地部署时，再继续按下面步骤安装。
