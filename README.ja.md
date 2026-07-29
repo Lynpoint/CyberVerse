@@ -108,7 +108,7 @@ CyberVerse は multi-agent アーキテクチャを採用しています。Perso
 
 CyberVerse をすばやく試し、環境依存関係を手動で設定する手間を避けたい場合は、クラウドイメージから起動できます：
 
-- [Compshare CyberVerse イメージ](https://www.compshare.cn/images/hKNKJSOUwn5H)
+- [Compshare CyberVerse イメージ](https://www.compshare.cn/images/hKNKJSOUwn5H?referral_code=IBmJcGPVu1RF78dMihkQCX)
 - [AutoDL CyberVerse イメージ](https://www.autodl.art/i/dsd2077/CyberVerse/CyberVerse)
 
 ローカルにデプロイする場合は、以下の手順に進んでください。

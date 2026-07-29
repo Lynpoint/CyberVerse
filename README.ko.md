@@ -109,7 +109,7 @@ CyberVerse는 multi-agent 아키텍처를 사용합니다. PersonaAgent는 항�
 
 CyberVerse를 빠르게 체험하고 환경 의존성을 수동으로 설정하는 일을 피하고 싶다면 클라우드 이미지에서 시작할 수 있습니다:
 
-- [Compshare CyberVerse 이미지](https://www.compshare.cn/images/hKNKJSOUwn5H)
+- [Compshare CyberVerse 이미지](https://www.compshare.cn/images/hKNKJSOUwn5H?referral_code=IBmJcGPVu1RF78dMihkQCX)
 - [AutoDL CyberVerse 이미지](https://www.autodl.art/i/dsd2077/CyberVerse/CyberVerse)
 
 로컬로 배포해야 할 때는 아래 단계에 따라 설치를 계속하세요.
