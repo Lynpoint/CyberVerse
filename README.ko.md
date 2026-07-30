@@ -462,10 +462,10 @@ SSH 터널이 아니라 브라우저가 원격 서버에 직접 연결되게 하
 ## 커뮤니티
 
 <p align="center">
-  <a href="docs/assets/wechat_group.jpg"><img src="docs/assets/wechat_group.jpg" alt="CyberVerse WeChat 그룹 QR 코드" width="320"/></a>
+  <a href="docs/assets/wechat.jpg"><img src="docs/assets/wechat.jpg" alt="CyberVerse 관리자 WeChat QR 코드" width="320"/></a>
 </p>
 
-<p align="center">QR 코드가 만료된 경우 관리자 WeChat <strong>wx_dsd2077</strong>에 추가하고, 친구 신청 시 <strong>CyberVerse</strong>라고 남겨 주세요. 그룹으로 초대해 드립니다.</p>
+<p align="center">QR 코드를 스캔하거나 관리자 WeChat <strong>wx_dsd2077</strong>을 추가하고, 친구 신청 시 <strong>CyberVerse</strong>라고 남겨 주세요. <strong>CyberVerse 디지털 휴먼 기술 교류 그룹</strong>으로 초대해 드립니다.</p>
 
 ## Star History
 

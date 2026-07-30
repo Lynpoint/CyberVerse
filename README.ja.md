@@ -461,10 +461,10 @@ SSH トンネルではなくブラウザからリモートサーバーへ直接�
 ## コミュニティ
 
 <p align="center">
-  <a href="docs/assets/wechat_group.jpg"><img src="docs/assets/wechat_group.jpg" alt="CyberVerse WeChat グループ QR コード" width="320"/></a>
+  <a href="docs/assets/wechat.jpg"><img src="docs/assets/wechat.jpg" alt="CyberVerse メンテナーの WeChat QR コード" width="320"/></a>
 </p>
 
-<p align="center">QR コードの有効期限が切れた場合は、管理者の WeChat <strong>wx_dsd2077</strong> に追加し、申請時に <strong>CyberVerse</strong> と備考してください。グループへ招待します。</p>
+<p align="center">QR コードをスキャンするか、メンテナーの WeChat <strong>wx_dsd2077</strong> を追加し、申請時に <strong>CyberVerse</strong> と記載してください。<strong>CyberVerse デジタルヒューマン技術交流グループ</strong>へ招待します。</p>
 
 ## Star History
 

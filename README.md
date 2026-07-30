@@ -469,10 +469,10 @@ Roadmap is maintained in Yuque / Roadmap 已迁移至语雀: [CyberVerse Require
 ## Community
 
 <p align="center">
-  <a href="docs/assets/wechat_group.jpg"><img src="docs/assets/wechat_group.jpg" alt="CyberVerse WeChat group QR code" width="320"/></a>
+  <a href="docs/assets/wechat.jpg"><img src="docs/assets/wechat.jpg" alt="CyberVerse maintainer WeChat QR code" width="320"/></a>
 </p>
 
-<p align="center">If the QR code has expired, add the maintainer on WeChat: <strong>wx_dsd2077</strong>. Please note <strong>CyberVerse</strong> in your friend request; we will invite you to the group.</p>
+<p align="center">Scan the QR code or add the maintainer on WeChat: <strong>wx_dsd2077</strong>. Please note <strong>CyberVerse</strong> in your friend request; we will invite you to the <strong>CyberVerse Digital Human Technology Group</strong>.</p>
 
 ## Star History
 

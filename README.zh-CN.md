@@ -466,10 +466,10 @@ ssh -L 8443:127.0.0.1:8443 user@host -p port
 ## 社区交流
 
 <p align="center">
-  <a href="docs/assets/wechat_group.jpg"><img src="docs/assets/wechat_group.jpg" alt="CyberVerse 微信技术交流群二维码" width="320"/></a>
+  <a href="docs/assets/wechat.jpg"><img src="docs/assets/wechat.jpg" alt="CyberVerse 维护者微信二维码" width="320"/></a>
 </p>
 
-<p align="center">如果二维码过期，可添加本人微信：<strong>wx_dsd2077</strong>，并备注 <strong>CyberVerse</strong>，我会邀请您进群</p>
+<p align="center">扫描二维码或添加本人微信：<strong>wx_dsd2077</strong>，并备注 <strong>CyberVerse</strong>，我会邀请您进<strong>CyberVerse数字人技术交流群</strong>。</p>
 
 ## 星标历史
 
