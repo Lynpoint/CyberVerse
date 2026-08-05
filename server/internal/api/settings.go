@@ -111,27 +111,51 @@ type launchConfigResponse struct {
 	Sections               []launchConfigSectionJSON `json:"sections"`
 }
 
-// settingsField maps a UI field to an environment variable.
+// settingsField maps a UI field to an environment variable. secret fields are
+// masked in GET responses and masked values are ignored on PUT so the browser
+// cannot echo a redacted value back over the real secret.
 type settingsField struct {
 	envKey   string
+	secret   bool
 	getValue func(*SettingsResponse) string
 }
 
 var settingsFields = []settingsField{
-	{"DOUBAO_ACCESS_TOKEN", func(s *SettingsResponse) string { return s.Doubao.AccessToken }},
-	{"DOUBAO_APP_ID", func(s *SettingsResponse) string { return s.Doubao.AppID }},
-	{"DOUBAO_API_KEY", func(s *SettingsResponse) string { return s.Doubao.APIKey }},
-	{"LIVEKIT_URL", func(s *SettingsResponse) string { return s.LiveKit.URL }},
-	{"LIVEKIT_API_KEY", func(s *SettingsResponse) string { return s.LiveKit.APIKey }},
-	{"LIVEKIT_API_SECRET", func(s *SettingsResponse) string { return s.LiveKit.APISecret }},
-	{"DASHSCOPE_API_KEY", func(s *SettingsResponse) string { return s.ModelProviders.DashScopeAPIKey }},
-	{"OPENAI_API_KEY", func(s *SettingsResponse) string {
+	{"DOUBAO_ACCESS_TOKEN", true, func(s *SettingsResponse) string { return s.Doubao.AccessToken }},
+	{"DOUBAO_APP_ID", false, func(s *SettingsResponse) string { return s.Doubao.AppID }},
+	{"DOUBAO_API_KEY", true, func(s *SettingsResponse) string { return s.Doubao.APIKey }},
+	{"LIVEKIT_URL", false, func(s *SettingsResponse) string { return s.LiveKit.URL }},
+	{"LIVEKIT_API_KEY", true, func(s *SettingsResponse) string { return s.LiveKit.APIKey }},
+	{"LIVEKIT_API_SECRET", true, func(s *SettingsResponse) string { return s.LiveKit.APISecret }},
+	{"DASHSCOPE_API_KEY", true, func(s *SettingsResponse) string { return s.ModelProviders.DashScopeAPIKey }},
+	{"OPENAI_API_KEY", true, func(s *SettingsResponse) string {
 		if s.ModelProviders.OpenAIAPIKey != "" {
 			return s.ModelProviders.OpenAIAPIKey
 		}
 		return s.LLM.APIKey
 	}},
-	{"GRPC_INFERENCE_ADDR", func(s *SettingsResponse) string { return s.Inference.GRPCAddr }},
+	{"GRPC_INFERENCE_ADDR", false, func(s *SettingsResponse) string { return s.Inference.GRPCAddr }},
+}
+
+// maskSecret redacts a secret for display in the browser. Secrets are never
+// sent back in full: the settings UI only needs to know whether one is set
+// and (for short secrets) its first character, so a masked value is enough.
+func maskSecret(s string) string {
+	if s == "" {
+		return ""
+	}
+	const visible = 4
+	if len(s) <= visible*2 {
+		return s[:1] + "****"
+	}
+	return s[:visible] + "****" + s[len(s)-visible:]
+}
+
+// isMaskedSecret reports whether v is a masked value produced by maskSecret
+// (format "prefix****suffix"), i.e. the browser echoed the redacted secret
+// back without editing it.
+func isMaskedSecret(v string) bool {
+	return strings.Contains(v, "****")
 }
 
 func (r *Router) handleGetSettings(w http.ResponseWriter, req *http.Request) {
@@ -168,6 +192,14 @@ func (r *Router) handleGetSettings(w http.ResponseWriter, req *http.Request) {
 			GRPCAddr: envOrDefault("GRPC_INFERENCE_ADDR", r.cfg.Inference.Addr),
 		},
 	}
+	// Never expose secrets in full to the browser.
+	resp.Doubao.AccessToken = maskSecret(resp.Doubao.AccessToken)
+	resp.Doubao.APIKey = maskSecret(resp.Doubao.APIKey)
+	resp.LiveKit.APIKey = maskSecret(resp.LiveKit.APIKey)
+	resp.LiveKit.APISecret = maskSecret(resp.LiveKit.APISecret)
+	resp.ModelProviders.DashScopeAPIKey = maskSecret(resp.ModelProviders.DashScopeAPIKey)
+	resp.ModelProviders.OpenAIAPIKey = maskSecret(resp.ModelProviders.OpenAIAPIKey)
+	resp.LLM.APIKey = maskSecret(resp.LLM.APIKey)
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -183,6 +215,11 @@ func (r *Router) handleUpdateSettings(w http.ResponseWriter, req *http.Request) 
 		val := f.getValue(&body)
 		// Skip empty values to avoid blanking existing config.
 		if val == "" {
+			continue
+		}
+		// Skip masked values: the browser echoes the redacted secret back when
+		// the user did not edit it. Writing it back would corrupt the real secret.
+		if f.secret && isMaskedSecret(val) {
 			continue
 		}
 		updates[f.envKey] = val
