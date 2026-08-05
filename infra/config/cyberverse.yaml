@@ -9,7 +9,10 @@ server:
     host: "0.0.0.0"
     http_port: 8080
     grpc_port: 50051
-    cors_origins: ["*"]
+    # Allowed cross-origin API/WebSocket clients. Local development origins
+    # (localhost / 127.0.0.1) are always allowed. Add your production frontend
+    # origin here; an explicit "*" entry restores the legacy wildcard behavior.
+    cors_origins: ["https://www.cyberverse.cc"]
 
 livekit:
     url: "${LIVEKIT_URL}"

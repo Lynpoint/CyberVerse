@@ -11,8 +11,23 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // CORS handled at router level
+		return checkOrigin(r)
 	},
+}
+
+// checkOrigin is the origin validator used for WebSocket upgrades. It is
+// installable so the API layer can share its CORS allowlist; the default
+// allows all origins to preserve existing behavior for standalone callers.
+var checkOrigin = func(r *http.Request) bool { return true }
+
+// SetCheckOrigin installs an origin validator for WebSocket upgrades.
+// Passing nil restores the default (allow all).
+func SetCheckOrigin(fn func(*http.Request) bool) {
+	if fn == nil {
+		checkOrigin = func(r *http.Request) bool { return true }
+		return
+	}
+	checkOrigin = fn
 }
 
 // HandleWebSocket returns an HTTP handler that upgrades connections to WebSocket
