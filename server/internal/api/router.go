@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"net/url"
 	"path/filepath"
 
 	"github.com/cyberverse/server/internal/agenttask"
@@ -55,6 +56,16 @@ func NewRouter(
 	if len(taskServices) > 0 {
 		r.taskSvc = taskServices[0]
 	}
+	// WebSocket upgrades share the CORS origin allowlist enforced by
+	// corsMiddleware so both HTTP and WS reject cross-origin clients.
+	// Non-browser clients without an Origin header are always allowed.
+	ws.SetCheckOrigin(func(req *http.Request) bool {
+		origin := req.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		return r.originAllowed(origin)
+	})
 	r.registerRoutes()
 	return r
 }
@@ -120,20 +131,68 @@ func (r *Router) registerRoutes() {
 }
 
 func (r *Router) Handler() http.Handler {
-	return corsMiddleware(r.mux)
+	return r.corsMiddleware(r.mux)
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+// corsMiddleware enforces an origin allowlist on cross-origin requests.
+// Requests without an Origin header (curl, tests, same-origin) are unaffected.
+func (r *Router) corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		origin := req.Header.Get("Origin")
+		if origin == "" {
+			// Non-browser client or same-origin request; keep the wildcard
+			// behavior so plain HTTP clients are not affected.
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		} else if r.originAllowed(origin) {
+			// Echo the exact origin instead of "*" so credentials could be
+			// used later and only allowlisted origins receive the header.
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		}
 
-		if r.Method == "OPTIONS" {
+		if req.Method == http.MethodOptions {
+			// Preflight: reject explicitly when the origin is not allowed.
+			if origin != "" && !r.originAllowed(origin) {
+				writeJSON(w, http.StatusForbidden, ErrorResponse{Error: "origin not allowed"})
+				return
+			}
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, req)
 	})
+}
+
+// originAllowed reports whether an Origin header value is trusted. Local
+// development origins are always allowed; anything else must be listed in
+// server.cors_origins (an explicit "*" entry keeps the legacy wildcard
+// behavior for deployments that opt into it).
+func (r *Router) originAllowed(origin string) bool {
+	if isLocalhostOrigin(origin) {
+		return true
+	}
+	for _, o := range r.cfg.Server.CORSOrigins {
+		if o == "*" || o == origin {
+			return true
+		}
+	}
+	return false
+}
+
+// isLocalhostOrigin reports whether origin is a local development origin
+// (Vite dev server, local preview, etc.) on any port.
+func isLocalhostOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Hostname() == "" {
+		return false
+	}
+	switch u.Hostname() {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	}
+	return false
 }

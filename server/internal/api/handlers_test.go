@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cyberverse/server/internal/character"
+	"github.com/cyberverse/server/internal/config"
 	"github.com/cyberverse/server/internal/inference"
 	"github.com/cyberverse/server/internal/orchestrator"
 	pb "github.com/cyberverse/server/internal/pb"
@@ -54,7 +55,10 @@ func newTestRouterWithMgrAndInference(mgr *orchestrator.SessionManager, inf *fak
 		inf.avatarInfo = &pb.AvatarInfo{ModelName: "avatar.flash_head", OutputFps: 25, OutputWidth: 512, OutputHeight: 512}
 	}
 	orch := orchestrator.New(inf, hub, mgr, nil, cs)
-	return NewRouter(mgr, orch, hub, nil, nil, cs, "", "")
+	cfg := &config.Config{
+		Server: config.ServerConfig{CORSOrigins: []string{"https://app.example.com"}},
+	}
+	return NewRouter(mgr, orch, hub, nil, cfg, cs, "", "")
 }
 
 func TestHealthEndpoint(t *testing.T) {
