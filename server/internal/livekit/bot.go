@@ -407,12 +407,14 @@ func (b *Bot) StartAVPipeline(ctx context.Context) {
 }
 
 // StopAVPipeline gracefully shuts down the pipeline and waits for goroutines.
+//
+// encodeCh is intentionally NOT closed here: closing it concurrently with a
+// SendAVSegment / WaitAVDrain send would panic ("send on closed channel").
+// Both encoders and senders exit via avPipelineCtx cancellation, and the
+// channel is garbage-collected with the bot.
 func (b *Bot) StopAVPipeline() {
 	if b.avPipelineCancel != nil {
 		b.avPipelineCancel()
-	}
-	if b.encodeCh != nil {
-		close(b.encodeCh)
 	}
 	b.avPipelineWg.Wait()
 }
@@ -505,7 +507,20 @@ func (b *Bot) runEncoder() {
 	defer b.avPipelineWg.Done()
 	defer close(b.publishCh)
 
-	for raw := range b.encodeCh {
+	for {
+		var raw *RawAVSegment
+		var ok bool
+		select {
+		case raw, ok = <-b.encodeCh:
+			if !ok {
+				// encodeCh is not closed by StopAVPipeline by design; this
+				// guard keeps the loop safe if a future caller closes it.
+				return
+			}
+		case <-b.avPipelineCtx.Done():
+			return
+		}
+
 		if b.avPipelineCtx.Err() != nil {
 			return
 		}
