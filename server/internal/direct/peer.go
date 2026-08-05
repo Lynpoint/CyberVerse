@@ -1360,7 +1360,10 @@ func (p *DirectPeer) Disconnect() error {
 	if p.pc != nil {
 		err := p.pc.Close()
 		p.pc = nil
-		close(p.userAudioCh)
+		// userAudioCh is intentionally NOT closed: readUserAudio may still be
+		// sending concurrently (a send on a closed channel panics). It stops
+		// writing once the track closes after pc.Close(), and readers drain
+		// the channel via ok-checks / non-blocking receives.
 		return err
 	}
 	return nil

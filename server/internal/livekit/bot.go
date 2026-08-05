@@ -710,8 +710,10 @@ func (b *Bot) Disconnect() error {
 		b.room = nil
 	}
 
-	// Don't close userAudioC here -- readers may still be draining
-	close(b.userAudioC)
+	// Don't close userAudioC here: the PCM remote track's writer goroutine may
+	// still be sending concurrently, and a send on a closed channel panics.
+	// The track stops writing once the room disconnects, and readers drain
+	// the channel via ok-checks / non-blocking receives.
 	log.Printf("Bot disconnected from room %s", b.roomName)
 	return nil
 }
