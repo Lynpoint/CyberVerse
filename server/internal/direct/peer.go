@@ -634,12 +634,14 @@ func (p *DirectPeer) currentVideoBitrateKbps() int {
 }
 
 // StopAVPipeline shuts down the AV pipeline goroutines.
+//
+// encodeCh is intentionally NOT closed here: closing it concurrently with a
+// SendAVSegment / WaitAVDrain send would panic ("send on closed channel").
+// Both encoders and senders exit via avPipelineCtx cancellation, and the
+// channel is garbage-collected with the peer.
 func (p *DirectPeer) StopAVPipeline() {
 	if p.avPipelineCancel != nil {
 		p.avPipelineCancel()
-	}
-	if p.encodeCh != nil {
-		close(p.encodeCh)
 	}
 	p.avPipelineWg.Wait()
 }
@@ -648,7 +650,20 @@ func (p *DirectPeer) runEncoder() {
 	defer p.avPipelineWg.Done()
 	defer close(p.publishCh)
 
-	for raw := range p.encodeCh {
+	for {
+		var raw *mediapeer.RawAVSegment
+		var ok bool
+		select {
+		case raw, ok = <-p.encodeCh:
+			if !ok {
+				// encodeCh is not closed by StopAVPipeline by design; this
+				// guard keeps the loop safe if a future caller closes it.
+				return
+			}
+		case <-p.avPipelineCtx.Done():
+			return
+		}
+
 		if p.avPipelineCtx.Err() != nil {
 			return
 		}
