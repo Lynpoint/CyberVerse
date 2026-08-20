@@ -474,8 +474,8 @@ ssh -L 8443:127.0.0.1:8443 user@host -p port
 ## 星标历史
 
 <p align="center">
-  <a href="https://star-history.com/#dsd2077/CyberVerse&Date">
-    <img src="https://api.star-history.com/svg?repos=dsd2077/CyberVerse&type=Date" alt="Star History Chart" width="100%"/>
+  <a href="https://star-history.dera.page/#Lynpoint/CyberVerse&Date">
+    <img src="https://star-history.dera.page/svg?repos=Lynpoint/CyberVerse&type=Date" alt="Star History Chart" width="100%"/>
   </a>
 </p>
 
