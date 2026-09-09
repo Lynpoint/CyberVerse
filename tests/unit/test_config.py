@@ -1,7 +1,7 @@
 """Tests for config loader with regex-based env var substitution."""
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -49,6 +49,10 @@ def test_load_config_basic():
     assert "base_url" not in config["inference"]["llm"]["qwen"]
     assert "system_prompt" not in config["inference"]["llm"]["qwen"]
     assert "system_prompt" not in config["inference"]["llm"]["openai"]
+    atlas = config["inference"]["llm"]["atlas"]
+    assert atlas["plugin_class"] == "inference.plugins.llm.openai_plugin.OpenAILLMPlugin"
+    assert atlas["base_url"] == "https://api.atlascloud.ai/v1"
+    assert atlas["model"] == "deepseek-ai/deepseek-v4-flash"
     assert "ws_url" not in config["inference"]["tts"]["qwen"]
     assert "ws_url" not in config["inference"]["asr"]["qwen"]
 

@@ -170,6 +170,16 @@ DOUBAO_ACCESS_TOKEN=your_doubao_access_token
 DOUBAO_APP_ID=your_doubao_app_id
 ```
 
+Or Atlas Cloud's OpenAI-compatible LLM models:
+
+```env
+ATLASCLOUD_API_KEY=your_atlascloud_api_key
+```
+
+The built-in `atlas` LLM provider uses `https://api.atlascloud.ai/v1` and
+`deepseek-ai/deepseek-v4-flash`. Select `atlas` as the character's LLM
+component; existing defaults remain unchanged.
+
 Doubao Voice: follow the [Volcengine quick start](https://www.volcengine.com/docs/6561/2119699?lang=zh) to get **App ID** / **API Key**, then fill in `DOUBAO_APP_ID` / `DOUBAO_ACCESS_TOKEN`.
 
 After the stack is running, you can change API keys and service endpoints from the web UI at **`/settings`** instead of editing `config/env` only.

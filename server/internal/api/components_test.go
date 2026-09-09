@@ -50,3 +50,9 @@ qwen:
 		t.Fatalf("expected TestVoice, got %q", voice)
 	}
 }
+
+func TestDisplayComponentNameAtlas(t *testing.T) {
+	if got := displayComponentName("atlas"); got != "Atlas Cloud" {
+		t.Fatalf("expected Atlas Cloud, got %q", got)
+	}
+}

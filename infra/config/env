@@ -31,6 +31,9 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 # Optional: use when OpenAI Realtime blocks direct regional access.
 # OPENAI_PROXY=socks5h://127.0.0.1:7897
 
+# Atlas Cloud OpenAI-compatible LLM models.
+ATLASCLOUD_API_KEY=your_atlascloud_api_key
+
 # Digital human providers
 
 # Baidu Xiling live avatar and offline video synthesis.
