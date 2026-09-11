@@ -13,6 +13,7 @@ export const useSettingsStore = defineStore('settings', () => {
     return !!(
       s.model_providers?.dashscope_api_key ||
       s.model_providers?.openai_api_key ||
+      s.model_providers?.atlascloud_api_key ||
       s.doubao.api_key ||
       s.doubao.access_token
     )

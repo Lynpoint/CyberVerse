@@ -5,9 +5,8 @@ import numpy as np
 import pytest
 
 from inference.core.types import PluginConfig
-from inference.plugins.llm.openai_plugin import OpenAILLMPlugin, SENTENCE_ENDERS
+from inference.plugins.llm.openai_plugin import SENTENCE_ENDERS, OpenAILLMPlugin
 from inference.plugins.tts.openai_tts_plugin import OpenAITTSPlugin
-
 
 # --- LLM Plugin Tests ---
 
@@ -19,6 +18,27 @@ class TestOpenAILLMPlugin:
         assert "." in SENTENCE_ENDERS
         assert "。" in SENTENCE_ENDERS
         assert "!" in SENTENCE_ENDERS
+
+    @pytest.mark.asyncio
+    async def test_initialize_openai_compatible_provider(self):
+        plugin = OpenAILLMPlugin()
+        config = PluginConfig(
+            plugin_name="llm.atlas",
+            params={
+                "api_key": "test-key",
+                "base_url": "https://api.atlascloud.ai/v1",
+                "model": "deepseek-ai/deepseek-v4-flash",
+            },
+        )
+
+        with patch("openai.AsyncOpenAI") as client:
+            await plugin.initialize(config)
+
+        client.assert_called_once_with(
+            api_key="test-key",
+            base_url="https://api.atlascloud.ai/v1",
+        )
+        assert plugin.model == "deepseek-ai/deepseek-v4-flash"
 
     @pytest.mark.asyncio
     async def test_generate_stream_with_mock(self):

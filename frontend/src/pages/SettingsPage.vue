@@ -24,6 +24,7 @@ function defaultSettings(): Settings {
     model_providers: {
       dashscope_api_key: '',
       openai_api_key: '',
+      atlascloud_api_key: '',
     },
     inference: { grpc_addr: 'localhost:50051' },
   }
@@ -37,6 +38,7 @@ function normalizeSettings(data?: LegacySettings): Settings {
     model_providers: {
       dashscope_api_key: data?.model_providers?.dashscope_api_key || '',
       openai_api_key: data?.model_providers?.openai_api_key || data?.llm?.api_key || '',
+      atlascloud_api_key: data?.model_providers?.atlascloud_api_key || '',
     },
     inference: { ...defaults.inference, ...data?.inference },
   }
@@ -181,6 +183,25 @@ async function test() {
               />
               <button @click="toggleShow('openai_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-cv-text-muted hover:text-cv-text cursor-pointer text-xs">
                 {{ showTokens['openai_key'] ? t('common.hide') : t('common.show') }}
+              </button>
+            </div>
+          </label>
+        </section>
+
+        <!-- Atlas Cloud -->
+        <section class="bg-cv-surface border border-cv-border rounded-cv-lg p-6">
+          <h3 class="text-sm font-semibold text-cv-text mb-4">Atlas Cloud</h3>
+          <label class="block">
+            <span class="text-[13px] text-cv-text-secondary">API Key</span>
+            <div class="relative mt-1.5">
+              <input
+                v-model="form.model_providers.atlascloud_api_key"
+                :type="showTokens['atlascloud_key'] ? 'text' : 'password'"
+                placeholder="sk-..."
+                class="w-full h-[42px] bg-cv-elevated border border-cv-border rounded-cv-md px-4 pr-10 text-sm text-cv-text placeholder:text-cv-text-muted focus:border-cv-accent focus:outline-none transition-all"
+              />
+              <button @click="toggleShow('atlascloud_key')" class="absolute right-3 top-1/2 -translate-y-1/2 text-cv-text-muted hover:text-cv-text cursor-pointer text-xs">
+                {{ showTokens['atlascloud_key'] ? t('common.hide') : t('common.show') }}
               </button>
             </div>
           </label>

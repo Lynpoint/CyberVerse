@@ -52,6 +52,7 @@ services:
       - DOUBAO_API_KEY=${DOUBAO_API_KEY:?DOUBAO_API_KEY is required}
       - DOUBAO_APP_ID=${DOUBAO_APP_ID:?DOUBAO_APP_ID is required}
       - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY is required}
+      - ATLASCLOUD_API_KEY=${ATLASCLOUD_API_KEY:-}
       - CYBERVERSE_DATA_DIR=/app/data
     volumes:
       - ../checkpoints:/app/checkpoints

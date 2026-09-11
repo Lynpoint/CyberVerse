@@ -1,0 +1,6 @@
+atlas:
+    plugin_class: "inference.plugins.llm.openai_plugin.OpenAILLMPlugin"
+    api_key: "${ATLASCLOUD_API_KEY}"
+    base_url: "https://api.atlascloud.ai/v1"
+    model: "deepseek-ai/deepseek-v4-flash"
+    temperature: 0.7

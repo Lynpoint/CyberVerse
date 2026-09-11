@@ -12,9 +12,11 @@ import (
 func TestGetSettingsMasksSecrets(t *testing.T) {
 	const dashScopeKey = "sk-dashscope-super-secret-123456"
 	const openAIKey = "sk-openai-super-secret-123456"
+	const atlasCloudKey = "sk-atlascloud-super-secret-123456"
 	const liveKitSecret = "livekit-secret-value-123456"
 	t.Setenv("DASHSCOPE_API_KEY", dashScopeKey)
 	t.Setenv("OPENAI_API_KEY", openAIKey)
+	t.Setenv("ATLASCLOUD_API_KEY", atlasCloudKey)
 	t.Setenv("LIVEKIT_API_SECRET", liveKitSecret)
 
 	r := newTestRouter()
@@ -38,6 +40,9 @@ func TestGetSettingsMasksSecrets(t *testing.T) {
 	if strings.Contains(w.Body.String(), openAIKey) {
 		t.Error("GET /settings leaked OPENAI_API_KEY in full")
 	}
+	if strings.Contains(w.Body.String(), atlasCloudKey) {
+		t.Error("GET /settings leaked ATLASCLOUD_API_KEY in full")
+	}
 	if strings.Contains(w.Body.String(), liveKitSecret) {
 		t.Error("GET /settings leaked LIVEKIT_API_SECRET in full")
 	}
@@ -46,6 +51,7 @@ func TestGetSettingsMasksSecrets(t *testing.T) {
 	for name, got := range map[string]string{
 		"dashscope_api_key":  resp.ModelProviders.DashScopeAPIKey,
 		"openai_api_key":     resp.ModelProviders.OpenAIAPIKey,
+		"atlascloud_api_key": resp.ModelProviders.AtlasCloudAPIKey,
 		"llm.api_key":        resp.LLM.APIKey,
 		"livekit.api_secret": resp.LiveKit.APISecret,
 	} {
