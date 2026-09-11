@@ -477,8 +477,8 @@ Roadmap is maintained in Yuque / Roadmap 已迁移至语雀: [CyberVerse Require
 ## Star History
 
 <p align="center">
-  <a href="https://star-history.com/#dsd2077/CyberVerse&Date">
-    <img src="https://api.star-history.com/svg?repos=dsd2077/CyberVerse&type=Date" alt="Star History Chart" width="100%"/>
+  <a href="https://star-history.dera.page/#Lynpoint/CyberVerse&Date">
+    <img src="https://star-history.dera.page/svg?repos=Lynpoint/CyberVerse&type=Date" alt="Star History Chart" width="100%"/>
   </a>
 </p>
 
