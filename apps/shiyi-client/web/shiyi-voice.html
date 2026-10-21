@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <title>时忆 · AI语音</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root { color-scheme: light; font-family: system-ui, "Microsoft YaHei", sans-serif; color: #202c2c; background: #f5f7fa; letter-spacing: 0; }
+    body { margin: 0; }
+    button, input { font: inherit; }
+    button { cursor: pointer; border: 1px solid #ccd6de; border-radius: 8px; padding: 11px 18px; background: white; color: inherit; min-height: 46px; }
+    button:disabled { cursor: default; opacity: .5; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #9bc3ff; outline-offset: 3px; }
+    .primary { background: #215c4c; color: white; border-color: #215c4c; }
+    .danger { color: #a42e3a; border-color: #ddbfc3; }
+    [hidden] { display: none !important; }
+    header { display: flex; align-items: center; gap: 10px; padding: 14px 24px; background: white; border-bottom: 1px solid #dfe5eb; }
+    header img { width: 40px; height: 40px; object-fit: contain; }
+    header strong { font-size: 21px; }
+    header small { color: #64737e; margin-left: 8px; }
+    #language { margin-left: auto; min-width: 74px; }
+    main { max-width: 920px; margin: auto; padding: 26px 24px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; }
+    .portrait { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: center 28%; border-radius: 8px; }
+    h1 { font-size: 23px; margin: 16px 0 8px; line-height: 1.4; }
+    .badge { color: #5c4784; background: #eee9f7; display: inline-block; font-size: 12px; padding: 5px 9px; border-radius: 4px; margin-top: 4px; }
+    #status { font-size: 14px; margin: 16px 0; min-height: 24px; line-height: 1.6; color: #456b5b; overflow-wrap: anywhere; }
+    #status[data-error="true"] { color: #b12d3e; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 18px; }
+    .switches { display: flex; gap: 16px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid #dfe5eb; }
+    label { display: inline-flex; gap: 7px; align-items: center; font-size: 14px; }
+    input[type=checkbox] { accent-color: #215c4c; width: 18px; height: 18px; }
+    #messages { height: min(47vh, 400px); min-height: 190px; overflow: auto; padding: 8px 0; scrollbar-gutter: stable; }
+    .message { padding: 13px 0; border-bottom: 1px solid #e3e8ee; line-height: 1.7; overflow-wrap: anywhere; }
+    .message b { display: block; color: #5d6b77; font-size: 11px; margin-bottom: 3px; font-weight: 500; }
+    .message[data-role=user] b { color: #215c4c; }
+    .empty { color: #7a8490; padding: 24px 0; font-size: 14px; }
+    form { display: flex; gap: 8px; margin-top: 16px; }
+    #prompt { width: 100%; min-width: 0; border: 1px solid #ccd6de; border-radius: 8px; padding: 12px; background: white; }
+    footer { color: #7a8490; font-size: 12px; margin-top: 16px; line-height: 1.7; }
+    @media (max-width: 620px) {
+      header { padding: 12px 16px; }
+      header small { display: none; }
+      main { display: block; padding: 20px 16px; }
+      aside { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 16px; align-items: center; }
+      .portrait { width: 80px; height: 100px; }
+      h1 { font-size: 20px; margin: 0 0 6px; }
+      #messages { height: min(38vh, 320px); }
+      .controls button { flex: 1; }
+      form { position: sticky; bottom: 0; background: #f5f7fa; padding: 8px 0 max(8px, env(safe-area-inset-bottom)); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/assets/assets/branding/logo.png" alt="">
+    <strong data-i18n="brand">时忆</strong><small data-i18n="integration">独立语音联调</small>
+    <button id="language" type="button">English</button>
+  </header>
+  <main>
+    <aside>
+      <img class="portrait" src="/assets/assets/portraits/lin.jpg" alt="AI助手示意形象" id="portrait">
+      <div><h1 data-i18n="title">时忆语音助手</h1><span class="badge" data-i18n="disclosure">内容由AI生成</span></div>
+    </aside>
+    <section aria-label="AI语音对话" id="conversation">
+      <p id="status" role="status" aria-live="polite">正在检查服务…</p>
+      <div class="controls">
+        <button id="start" class="primary" type="button" disabled data-i18n="start">开始对话</button>
+        <button id="resume" type="button" hidden data-i18n="resume">播放声音</button>
+        <button id="stop" class="danger" type="button" disabled data-i18n="stop">结束</button>
+      </div>
+      <div class="switches">
+        <label><input id="mic" type="checkbox"><span data-i18n="mic">麦克风</span></label>
+        <label><input id="speaker" type="checkbox" checked><span data-i18n="speaker">扬声器</span></label>
+      </div>
+      <div id="messages" role="log" aria-live="polite"><p class="empty" data-i18n="empty">今天，有什么想聊的吗？</p></div>
+      <form id="form">
+        <input id="prompt" maxlength="1000" placeholder="说点什么…" aria-label="发送给AI的消息" autocomplete="off" disabled>
+        <button id="send" class="primary" disabled data-i18n="send">发送</button>
+      </form>
+      <footer data-i18n="privacy">语音与文字由云端 AI 服务处理。开启麦克风后才会采集声音；结束即停止。请勿输入敏感信息。</footer>
+    </section>
+  </main>
+  <audio id="audio" autoplay playsinline></audio>
+  <script type="module" src="/shiyi-voice.js"></script>
+</body>
+</html>

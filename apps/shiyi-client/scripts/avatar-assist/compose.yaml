@@ -1,0 +1,52 @@
+name: shiyi-avatar-assist
+services:
+  inference:
+    image: ${SHIYI_INFERENCE_IMAGE:?Prepare the local runtime image first}
+    pull_policy: never
+    working_dir: /app
+    command: [python3, -m, inference.server, --config, config/cyberverse.yaml]
+    environment:
+      CYBERVERSE_DATA_DIR: /app/data
+      WORLD_SIZE: '1'
+      OMP_NUM_THREADS: '2'
+      TORCHINDUCTOR_CACHE_DIR: /app/runtime-cache/inductor
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      CUDA_VISIBLE_DEVICES: ${SHIYI_GPU_UUID:?Select physical GPU 1 by UUID}
+      NVIDIA_VISIBLE_DEVICES: ${SHIYI_GPU_UUID:?Select physical GPU 1 by UUID}
+    volumes:
+      - ${SHIYI_ROOT}/.shiyi-avatar/config:/app/config:ro
+      - ${SHIYI_ROOT}/.shiyi-avatar/data:/app/data
+      - ${SHIYI_ROOT}/.shiyi-avatar/cache:/app/runtime-cache
+      - ${SHIYI_CHECKPOINTS}:/app/checkpoints:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['${SHIYI_GPU_UUID:?Select physical GPU 1 by UUID}']
+              capabilities: [gpu]
+    healthcheck:
+      test: [CMD, python3, -c, "import grpc; grpc.channel_ready_future(grpc.insecure_channel('127.0.0.1:55053')).result(timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 180s
+      retries: 3
+    restart: unless-stopped
+  api:
+    image: ${SHIYI_SERVER_IMAGE:?Prepare the local runtime image first}
+    pull_policy: never
+    working_dir: /app
+    command: [/app/shiyi-runtime/lib/ld-linux-x86-64.so.2, --library-path, /app/shiyi-runtime/lib, /app/shiyi-runtime/cyberverse-server, --config, config/cyberverse.yaml]
+    environment:
+      GRPC_INFERENCE_ADDR: inference:55053
+      CYBERVERSE_DATA_DIR: /app/data
+      CYBERVERSE_DIRECT_VIDEO_KBPS: '240'
+    volumes:
+      - ${SHIYI_ROOT}/.shiyi-avatar/runtime:/app/shiyi-runtime:ro
+      - ${SHIYI_ROOT}/.shiyi-avatar/config:/app/config:ro
+      - ${SHIYI_ROOT}/.shiyi-avatar/data:/app/data
+    depends_on:
+      inference:
+        condition: service_healthy
+    restart: unless-stopped

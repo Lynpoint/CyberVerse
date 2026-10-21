@@ -1,0 +1,30 @@
+diff --git a/server/internal/direct/webrtcapi.go b/server/internal/direct/webrtcapi.go
+--- a/server/internal/direct/webrtcapi.go
++++ b/server/internal/direct/webrtcapi.go
+@@ -20,2 +20,13 @@
+ func NewWebRTCAPI(cfg WebRTCAPIConfig) (*webrtc.API, <-chan cc.BandwidthEstimator, error) {
++	limit, err := configuredVideoBitrateKbps()
++	if err != nil {
++		return nil, nil, err
++	}
++	if limit > 0 {
++		cfg.InitialBitrate = limit * 1000
++		cfg.MinBitrate = 100_000
++		cfg.MaxBitrate = limit * 1000
++	}
+ 	if cfg.InitialBitrate <= 0 {
+diff --git a/server/internal/direct/peer.go b/server/internal/direct/peer.go
+--- a/server/internal/direct/peer.go
++++ b/server/internal/direct/peer.go
+@@ -621,2 +621,11 @@
+ func (p *DirectPeer) currentVideoBitrateKbps() int {
++	bitrate := p.adaptiveVideoBitrateKbps()
++	limit, _ := configuredVideoBitrateKbps()
++	if limit > 0 && bitrate > limit {
++		return limit
++	}
++	return bitrate
++}
++
++func (p *DirectPeer) adaptiveVideoBitrateKbps() int {
+ 	targetBps := p.targetBitrateBps.Load()
