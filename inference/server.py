@@ -255,7 +255,13 @@ async def main(config_path: str) -> None:
         asyncio.create_task(server.stop())
 
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, _on_signal)
+        try:
+            loop.add_signal_handler(sig, _on_signal)
+        except NotImplementedError:
+            signal.signal(
+                sig,
+                lambda *_: loop.call_soon_threadsafe(_on_signal),
+            )
 
     try:
         await server.start()

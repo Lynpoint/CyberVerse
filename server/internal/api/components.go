@@ -226,12 +226,16 @@ func displayComponentName(id string) string {
 		return "Qwen"
 	case "openai":
 		return "OpenAI"
+	case "ollama":
+		return "Ollama"
 	case "atlas":
 		return "Atlas Cloud"
 	case "cheaperinference":
 		return "Cheaper Inference"
 	case "whisper":
 		return "Whisper"
+	case "windows_sapi":
+		return "Windows Speech (local)"
 	default:
 		if id == "" {
 			return "Qwen"
