@@ -230,6 +230,8 @@ func displayComponentName(id string) string {
 		return "Atlas Cloud"
 	case "cheaperinference":
 		return "Cheaper Inference"
+	case "runcrate":
+		return "Runcrate"
 	case "whisper":
 		return "Whisper"
 	default:

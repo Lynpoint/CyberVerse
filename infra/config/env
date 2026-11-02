@@ -37,6 +37,9 @@ ATLASCLOUD_API_KEY=your_atlascloud_api_key
 # Cheaper Inference OpenAI-compatible LLM models.
 CHEAPER_INFERENCE_API_KEY=your_cheaper_inference_api_key
 
+# Runcrate OpenAI-compatible open-weight LLM models.
+RUNCRATE_API_KEY=your_runcrate_api_key
+
 # Digital human providers
 
 # Baidu Xiling live avatar and offline video synthesis.

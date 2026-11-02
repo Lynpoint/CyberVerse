@@ -14,11 +14,13 @@ func TestGetSettingsMasksSecrets(t *testing.T) {
 	const openAIKey = "sk-openai-super-secret-123456"
 	const atlasCloudKey = "sk-atlascloud-super-secret-123456"
 	const cheaperInferenceKey = "ci-cheaperinference-super-secret-123456"
+	const runcrateKey = "rc_runcrate-super-secret-123456"
 	const liveKitSecret = "livekit-secret-value-123456"
 	t.Setenv("DASHSCOPE_API_KEY", dashScopeKey)
 	t.Setenv("OPENAI_API_KEY", openAIKey)
 	t.Setenv("ATLASCLOUD_API_KEY", atlasCloudKey)
 	t.Setenv("CHEAPER_INFERENCE_API_KEY", cheaperInferenceKey)
+	t.Setenv("RUNCRATE_API_KEY", runcrateKey)
 	t.Setenv("LIVEKIT_API_SECRET", liveKitSecret)
 
 	r := newTestRouter()
@@ -48,6 +50,9 @@ func TestGetSettingsMasksSecrets(t *testing.T) {
 	if strings.Contains(w.Body.String(), cheaperInferenceKey) {
 		t.Error("GET /settings leaked CHEAPER_INFERENCE_API_KEY in full")
 	}
+	if strings.Contains(w.Body.String(), runcrateKey) {
+		t.Error("GET /settings leaked RUNCRATE_API_KEY in full")
+	}
 	if strings.Contains(w.Body.String(), liveKitSecret) {
 		t.Error("GET /settings leaked LIVEKIT_API_SECRET in full")
 	}
@@ -58,6 +63,7 @@ func TestGetSettingsMasksSecrets(t *testing.T) {
 		"openai_api_key":           resp.ModelProviders.OpenAIAPIKey,
 		"atlascloud_api_key":       resp.ModelProviders.AtlasCloudAPIKey,
 		"cheaperinference_api_key": resp.ModelProviders.CheaperInferenceAPIKey,
+		"runcrate_api_key":         resp.ModelProviders.RuncrateAPIKey,
 		"llm.api_key":              resp.LLM.APIKey,
 		"livekit.api_secret":       resp.LiveKit.APISecret,
 	} {
