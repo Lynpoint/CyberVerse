@@ -189,6 +189,16 @@ CHEAPER_INFERENCE_API_KEY=your_cheaper_inference_api_key
 `gpt-5.4-mini`。在角色的 LLM 组件中选择 `cheaperinference` 即可，
 现有默认配置保持不变。
 
+或者使用 UberLLM 的 OpenAI 兼容 LLM：
+
+```env
+UBERLLM_API_KEY=your_uberllm_api_key
+```
+
+内置的 `uberllm` LLM provider 使用 `https://api.uberllm.dev/v1` 和
+`openai/gpt-5.4-mini`。在角色的 LLM 组件中选择 `uberllm` 即可，
+现有默认配置保持不变。
+
 豆包语音：按照 [火山引擎快速入门](https://www.volcengine.com/docs/6561/2119699?lang=zh) 获取 **App ID** / **API Key**，并填入 `DOUBAO_APP_ID` / `DOUBAO_ACCESS_TOKEN`。
 
 服务启动后，你也可以在 Web UI 的 **`/settings`** 页面修改 API Key 和服务端点，而不必只依赖编辑 `config/env`。
