@@ -179,6 +179,7 @@ export interface ModelProviderSettings {
   openai_api_key: string
   atlascloud_api_key: string
   cheaperinference_api_key: string
+  uberllm_api_key: string
   runcrate_api_key: string
 }
 

@@ -45,6 +45,7 @@ type ModelProviderSettings struct {
 	OpenAIAPIKey           string `json:"openai_api_key"`
 	AtlasCloudAPIKey       string `json:"atlascloud_api_key"`
 	CheaperInferenceAPIKey string `json:"cheaperinference_api_key"`
+	UberLLMAPIKey          string `json:"uberllm_api_key"`
 	RuncrateAPIKey         string `json:"runcrate_api_key"`
 }
 
@@ -139,6 +140,7 @@ var settingsFields = []settingsField{
 	}},
 	{"ATLASCLOUD_API_KEY", true, func(s *SettingsResponse) string { return s.ModelProviders.AtlasCloudAPIKey }},
 	{"CHEAPER_INFERENCE_API_KEY", true, func(s *SettingsResponse) string { return s.ModelProviders.CheaperInferenceAPIKey }},
+	{"UBERLLM_API_KEY", true, func(s *SettingsResponse) string { return s.ModelProviders.UberLLMAPIKey }},
 	{"RUNCRATE_API_KEY", true, func(s *SettingsResponse) string { return s.ModelProviders.RuncrateAPIKey }},
 	{"GRPC_INFERENCE_ADDR", false, func(s *SettingsResponse) string { return s.Inference.GRPCAddr }},
 }
@@ -181,6 +183,7 @@ func (r *Router) handleGetSettings(w http.ResponseWriter, req *http.Request) {
 			OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
 			AtlasCloudAPIKey:       os.Getenv("ATLASCLOUD_API_KEY"),
 			CheaperInferenceAPIKey: os.Getenv("CHEAPER_INFERENCE_API_KEY"),
+			UberLLMAPIKey:          os.Getenv("UBERLLM_API_KEY"),
 			RuncrateAPIKey:         os.Getenv("RUNCRATE_API_KEY"),
 		},
 		LLM: LLMSettings{
@@ -210,6 +213,7 @@ func (r *Router) handleGetSettings(w http.ResponseWriter, req *http.Request) {
 	resp.ModelProviders.OpenAIAPIKey = maskSecret(resp.ModelProviders.OpenAIAPIKey)
 	resp.ModelProviders.AtlasCloudAPIKey = maskSecret(resp.ModelProviders.AtlasCloudAPIKey)
 	resp.ModelProviders.CheaperInferenceAPIKey = maskSecret(resp.ModelProviders.CheaperInferenceAPIKey)
+	resp.ModelProviders.UberLLMAPIKey = maskSecret(resp.ModelProviders.UberLLMAPIKey)
 	resp.ModelProviders.RuncrateAPIKey = maskSecret(resp.ModelProviders.RuncrateAPIKey)
 	resp.LLM.APIKey = maskSecret(resp.LLM.APIKey)
 	writeJSON(w, http.StatusOK, resp)

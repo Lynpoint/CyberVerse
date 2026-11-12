@@ -77,6 +77,7 @@ live_act = [
     "safetensors",
 ]
 asr = ["openai-whisper>=20231117"]
+windows_tts = ["pyttsx3>=2.98; platform_system == 'Windows'"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
@@ -84,7 +85,7 @@ dev = [
 agent = [
 ]
 all = [
-    "cyberverse[inference,llm,tts,omni,asr,rag,milvus,flash_head,live_act,agent]",
+    "cyberverse[inference,llm,tts,omni,asr,windows_tts,rag,milvus,flash_head,live_act,agent]",
 ]
 
 [tool.pytest.ini_options]
