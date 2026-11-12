@@ -190,6 +190,16 @@ The built-in `cheaperinference` LLM provider uses `https://api.cheaperinference.
 `gpt-5.4-mini`. Select `cheaperinference` as the character's LLM
 component; existing defaults remain unchanged.
 
+Or UberLLM's OpenAI-compatible LLM models:
+
+```env
+UBERLLM_API_KEY=your_uberllm_api_key
+```
+
+The built-in `uberllm` LLM provider uses `https://api.uberllm.dev/v1` and
+`openai/gpt-5.4-mini`. Select `uberllm` as the character's LLM
+component; existing defaults remain unchanged.
+
 Doubao Voice: follow the [Volcengine quick start](https://www.volcengine.com/docs/6561/2119699?lang=zh) to get **App ID** / **API Key**, then fill in `DOUBAO_APP_ID` / `DOUBAO_ACCESS_TOKEN`.
 
 After the stack is running, you can change API keys and service endpoints from the web UI at **`/settings`** instead of editing `config/env` only.
