@@ -815,6 +815,16 @@ watch(
 onMounted(async () => {
   try {
     componentCatalog.value = await getComponents()
+    if (!isEdit.value) {
+      const defaultComponent = (items: ComponentOption[], fallback: string) =>
+        items.find(item => item.default)?.id || fallback
+      form.value.components = {
+        ...form.value.components,
+        llm: defaultComponent(componentCatalog.value.llm, DEFAULT_COMPONENTS.llm),
+        asr: defaultComponent(componentCatalog.value.asr, DEFAULT_COMPONENTS.asr),
+        tts: defaultComponent(componentCatalog.value.tts, DEFAULT_COMPONENTS.tts),
+      }
+    }
   } catch (e) {
     console.warn('Failed to load components:', e)
   }

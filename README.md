@@ -206,6 +206,22 @@ After the stack is running, you can change API keys and service endpoints from t
 
 Omni, LLM, embedding, TTS, and ASR model definitions are discovered automatically from `infra/config/*_models/`. Create matching files under `config/*_models/` only when you want local overrides.
 
+### Local Ollama and Windows speech
+
+On Windows, install Ollama and pull `qwen3.5:4b`. The built-in `ollama` provider uses `http://127.0.0.1:11434/v1`; Windows SAPI is available as `windows_sapi`. The `[all]` extra includes the Windows TTS dependency on Windows. To use these providers for new characters, set the defaults in `config/cyberverse.yaml`:
+
+```yaml
+inference:
+  llm:
+    default: ollama
+  asr:
+    default: whisper
+  tts:
+    default: windows_sapi
+```
+
+If inference runs in a Docker container, override the Ollama `base_url` with `http://host.docker.internal:11434/v1`.
+
 ### Step 4: Create local config and enable voice-only mode
 
 Edit `config/cyberverse.yaml`:

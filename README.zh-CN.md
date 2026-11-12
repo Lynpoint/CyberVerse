@@ -205,6 +205,22 @@ UBERLLM_API_KEY=your_uberllm_api_key
 
 omni、LLM、Embedding、TTS、ASR 的模型定义会从 `infra/config/*_models/` 自动发现；只有需要本地覆盖时，才在 `config/*_models/` 下放置同名模型文件。
 
+### 本地 Ollama 和 Windows 语音
+
+在 Windows 上安装 Ollama 并拉取 `qwen3.5:4b`。内置 `ollama` provider 使用 `http://127.0.0.1:11434/v1`；Windows SAPI 可通过 `windows_sapi` 使用。Windows 上的 `[all]` extras 会包含 Windows TTS 依赖。若要让新建角色使用这些 provider，请在 `config/cyberverse.yaml` 中设置默认值：
+
+```yaml
+inference:
+  llm:
+    default: ollama
+  asr:
+    default: whisper
+  tts:
+    default: windows_sapi
+```
+
+如果推理服务运行在 Docker 容器中，请将 Ollama 的 `base_url` 覆盖为 `http://host.docker.internal:11434/v1`。
+
 ### 第 4 步：创建本地配置并启用 voice-only 模式
 
 编辑 `config/cyberverse.yaml`：

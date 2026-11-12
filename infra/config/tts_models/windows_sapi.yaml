@@ -1,0 +1,4 @@
+windows_sapi:
+    plugin_class: "inference.plugins.tts.windows_sapi_plugin.WindowsSapiTTSPlugin"
+    voice: "default"
+    rate: 180
