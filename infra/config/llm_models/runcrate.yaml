@@ -1,0 +1,6 @@
+runcrate:
+    plugin_class: "inference.plugins.llm.openai_plugin.OpenAILLMPlugin"
+    api_key: "${RUNCRATE_API_KEY}"
+    base_url: "https://api.runcrate.ai/v1"
+    model: "deepseek-ai/DeepSeek-V4.1-Flash"
+    temperature: 0.7

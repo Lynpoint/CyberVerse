@@ -200,6 +200,16 @@ The built-in `uberllm` LLM provider uses `https://api.uberllm.dev/v1` and
 `openai/gpt-5.4-mini`. Select `uberllm` as the character's LLM
 component; existing defaults remain unchanged.
 
+Or Runcrate's OpenAI-compatible open-weight LLM models:
+
+```env
+RUNCRATE_API_KEY=your_runcrate_api_key
+```
+
+The built-in `runcrate` LLM provider uses `https://api.runcrate.ai/v1` and
+`deepseek-ai/DeepSeek-V4.1-Flash`. Select `runcrate` as the character's LLM
+component; existing defaults remain unchanged.
+
 Doubao Voice: follow the [Volcengine quick start](https://www.volcengine.com/docs/6561/2119699?lang=zh) to get **App ID** / **API Key**, then fill in `DOUBAO_APP_ID` / `DOUBAO_ACCESS_TOKEN`.
 
 After the stack is running, you can change API keys and service endpoints from the web UI at **`/settings`** instead of editing `config/env` only.

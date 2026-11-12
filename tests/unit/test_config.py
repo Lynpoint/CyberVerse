@@ -61,6 +61,10 @@ def test_load_config_basic():
     assert uberllm["plugin_class"] == "inference.plugins.llm.openai_plugin.OpenAILLMPlugin"
     assert uberllm["base_url"] == "https://api.uberllm.dev/v1"
     assert uberllm["model"] == "openai/gpt-5.4-mini"
+    runcrate = config["inference"]["llm"]["runcrate"]
+    assert runcrate["plugin_class"] == "inference.plugins.llm.openai_plugin.OpenAILLMPlugin"
+    assert runcrate["base_url"] == "https://api.runcrate.ai/v1"
+    assert runcrate["model"] == "deepseek-ai/DeepSeek-V4.1-Flash"
     assert "ws_url" not in config["inference"]["tts"]["qwen"]
     assert "ws_url" not in config["inference"]["asr"]["qwen"]
 

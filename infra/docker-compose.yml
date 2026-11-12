@@ -55,6 +55,7 @@ services:
       - ATLASCLOUD_API_KEY=${ATLASCLOUD_API_KEY:-}
       - CHEAPER_INFERENCE_API_KEY=${CHEAPER_INFERENCE_API_KEY:-}
       - UBERLLM_API_KEY=${UBERLLM_API_KEY:-}
+      - RUNCRATE_API_KEY=${RUNCRATE_API_KEY:-}
       - CYBERVERSE_DATA_DIR=/app/data
     volumes:
       - ../checkpoints:/app/checkpoints

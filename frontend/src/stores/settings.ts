@@ -16,6 +16,7 @@ export const useSettingsStore = defineStore('settings', () => {
       s.model_providers?.atlascloud_api_key ||
       s.model_providers?.cheaperinference_api_key ||
       s.model_providers?.uberllm_api_key ||
+      s.model_providers?.runcrate_api_key ||
       s.doubao.api_key ||
       s.doubao.access_token
     )

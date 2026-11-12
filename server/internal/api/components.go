@@ -234,6 +234,8 @@ func displayComponentName(id string) string {
 		return "Cheaper Inference"
 	case "uberllm":
 		return "UberLLM"
+	case "runcrate":
+		return "Runcrate"
 	case "whisper":
 		return "Whisper"
 	case "windows_sapi":
