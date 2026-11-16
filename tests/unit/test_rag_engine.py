@@ -168,3 +168,39 @@ async def test_rag_engine_indexes_searches_and_deletes_with_milvus_backend(tmp_p
         )
     )
     assert results == []
+
+
+def test_search_respects_an_explicit_zero_min_score(tmp_path, monkeypatch):
+    # min_score=0.0 means "keep every result", and is also a valid config
+    # value. Treating 0 as "unset" silently re-applies the 0.25 default and
+    # drops low-scoring but relevant chunks.
+    class _Doc:
+        page_content = "a low-scoring but relevant chunk"
+        metadata = {"source_id": "source_1"}
+
+    class _Backend:
+        def index_exists(self):
+            return True
+
+        def search(self, query, k):
+            return [(_Doc(), 0.1)]
+
+    engine = RAGEngine({})
+    monkeypatch.setattr(engine, "_backend", lambda character_id, character_dir: _Backend())
+
+    results = engine._search_sync(
+        RAGSearchRequest(
+            character_id="char_1",
+            character_dir=str(tmp_path),
+            query="anything",
+            min_score=0.0,
+        )
+    )
+    assert len(results) == 1
+    assert results[0].score == 0.1
+
+
+def test_rag_config_accepts_zero_min_score():
+    engine = RAGEngine({"pipeline": {"rag": {"min_score": 0.0}}})
+
+    assert engine.default_min_score == 0.0

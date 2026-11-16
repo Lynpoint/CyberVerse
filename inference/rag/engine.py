@@ -128,7 +128,10 @@ class RAGEngine:
         )
         self.default_top_k = int(settings.get("top_k") or DEFAULT_TOP_K)
         self.default_max_context_chars = int(settings.get("max_context_chars") or DEFAULT_MAX_CONTEXT_CHARS)
-        self.default_min_score = float(settings.get("min_score") or DEFAULT_MIN_SCORE)
+        configured_min_score = settings.get("min_score")
+        self.default_min_score = float(
+            DEFAULT_MIN_SCORE if configured_min_score is None else configured_min_score
+        )
         self._embeddings: Any | None = None
 
     def _data_root_candidates(self) -> list[Path]:
@@ -310,7 +313,7 @@ class RAGEngine:
             return []
         top_k = req.top_k if req.top_k > 0 else self.default_top_k
         max_chars = req.max_context_chars if req.max_context_chars > 0 else self.default_max_context_chars
-        min_score = req.min_score if req.min_score > 0 else self.default_min_score
+        min_score = req.min_score if req.min_score >= 0 else self.default_min_score
 
         raw_results = backend.search(query, top_k)
         results: list[RAGSearchResult] = []
