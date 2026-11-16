@@ -240,6 +240,8 @@ func displayComponentName(id string) string {
 		return "Whisper"
 	case "windows_sapi":
 		return "Windows Speech (local)"
+	case "cosyvoice_local":
+		return "CosyVoice (local)"
 	default:
 		if id == "" {
 			return "Qwen"

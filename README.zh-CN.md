@@ -229,6 +229,8 @@ inference:
     default: windows_sapi
 ```
 
+如需本地 TTS 与声音克隆，可启动 [CosyVoice](https://github.com/FunAudioLLM/CosyVoice) 的 FastAPI 服务（`runtime/python/fastapi/server.py`），将 `tts.default` 设为 `cosyvoice_local`，并在 `infra/config/tts_models/cosyvoice_local.yaml` 中把 `prompt_wav` / `prompt_text` 指向一段参考音频。
+
 如果推理服务运行在 Docker 容器中，请将 Ollama 的 `base_url` 覆盖为 `http://host.docker.internal:11434/v1`。
 
 ### 第 4 步：创建本地配置并启用 voice-only 模式

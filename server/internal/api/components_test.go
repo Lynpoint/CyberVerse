@@ -51,6 +51,12 @@ qwen:
 	}
 }
 
+func TestDisplayComponentNameCosyVoiceLocal(t *testing.T) {
+	if got := displayComponentName("cosyvoice_local"); got != "CosyVoice (local)" {
+		t.Fatalf("displayComponentName(cosyvoice_local) = %q, want CosyVoice (local)", got)
+	}
+}
+
 func TestDisplayComponentNameAtlas(t *testing.T) {
 	if got := displayComponentName("atlas"); got != "Atlas Cloud" {
 		t.Fatalf("expected Atlas Cloud, got %q", got)
