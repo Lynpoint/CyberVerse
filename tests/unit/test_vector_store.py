@@ -154,3 +154,27 @@ def test_milvus_delete_source_is_noop_before_collection_exists(tmp_path):
     backend._store = _NoCollectionClient()
 
     backend.delete_source("source_1")  # should not raise or call delete
+
+
+def test_milvus_delete_source_escapes_backslashes_and_quotes(tmp_path):
+    # source_id comes from the gRPC request and may contain Windows path
+    # separators or quotes. The Milvus boolean expression must still resolve to
+    # exactly one well-formed string literal equal to that id.
+    import json
+
+    backend = _remote_milvus(tmp_path)
+    captured = {}
+
+    class _CaptureClient:
+        col = object()  # collection exists
+
+        def delete(self, expr=None):
+            captured["expr"] = expr
+            return {"delete_count": 1}
+
+    backend._store = _CaptureClient()
+
+    for source_id in (r"dir\report", 'dir\\"final', "trailing\\", 'quote"inside'):
+        backend.delete_source(source_id)
+        literal = captured["expr"].split(" == ", 1)[1]
+        assert json.loads(literal) == source_id
