@@ -424,3 +424,65 @@ inference:
 
         with pytest.raises(ValueError):
             load_config(config_path)
+
+
+@pytest.mark.parametrize(
+    "env_value",
+    [
+        "a: b",  # a YAML mapping separator inside an env value
+        "https://host:8080/v1#fragment",
+        'he said "hi"',
+        "line1\nline2",
+    ],
+)
+def test_env_var_values_are_substituted_as_data_not_yaml_syntax(tmp_path, env_value):
+    """Environment variables are substituted into the raw YAML text today, so a
+    value containing YAML syntax (a colon, a comment marker, a quote, a newline)
+    either corrupts the document or makes yaml.safe_load raise. Substitution
+    must treat the value as data, not as a fragment of YAML source."""
+    env_key = "TEST_CYBERVERSE_SPECIAL_VAR"
+    os.environ[env_key] = env_value
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(f"key: ${{{env_key}}}\n", encoding="utf-8")
+    try:
+        assert load_config(config_path)["key"] == env_value
+    finally:
+        del os.environ[env_key]
+
+
+@pytest.mark.parametrize(
+    "env_value,expected",
+    [("8080", 8080), ("1.5", 1.5), ("true", True), ("null", None)],
+)
+def test_single_placeholder_keeps_scalar_types(tmp_path, env_value, expected):
+    """A bare ${VAR} value used to be parsed by YAML after text substitution,
+    so numeric/boolean env values became typed scalars. Preserve that."""
+    env_key = "TEST_CYBERVERSE_TYPED_VAR"
+    os.environ[env_key] = env_value
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(f"key: ${{{env_key}}}\n", encoding="utf-8")
+    try:
+        assert load_config(config_path)["key"] == expected
+        assert type(load_config(config_path)["key"]) is type(expected)
+    finally:
+        del os.environ[env_key]
+
+
+def test_env_var_concatenation_and_unmatched_placeholders_still_work(tmp_path):
+    """Values joined with surrounding text keep their literal characters, and
+    placeholders with no matching env var are left untouched."""
+    os.environ["TEST_CV_HOST"] = "localhost"
+    os.environ["TEST_CV_PORT"] = "8080"
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "url: ${TEST_CV_HOST}:${TEST_CV_PORT}\n"
+        "missing: ${NONEXISTENT_CYBERVERSE_VAR_99999}\n",
+        encoding="utf-8",
+    )
+    try:
+        config = load_config(config_path)
+        assert config["url"] == "localhost:8080"
+        assert config["missing"] == "${NONEXISTENT_CYBERVERSE_VAR_99999}"
+    finally:
+        del os.environ["TEST_CV_HOST"]
+        del os.environ["TEST_CV_PORT"]
