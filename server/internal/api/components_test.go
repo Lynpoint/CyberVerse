@@ -51,6 +51,12 @@ qwen:
 	}
 }
 
+func TestDisplayComponentNameFunASR(t *testing.T) {
+	if got := displayComponentName("funasr"); got != "FunASR" {
+		t.Fatalf("displayComponentName(funasr) = %q, want FunASR", got)
+	}
+}
+
 func TestDisplayComponentNameAtlas(t *testing.T) {
 	if got := displayComponentName("atlas"); got != "Atlas Cloud" {
 		t.Fatalf("expected Atlas Cloud, got %q", got)

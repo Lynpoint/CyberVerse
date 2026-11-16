@@ -1,0 +1,10 @@
+funasr:
+    plugin_class: "inference.plugins.asr.funasr_plugin.FunASRPlugin"
+    ws_url: "ws://127.0.0.1:10095" # FunASR runtime server; the docker image serves wss:// unless started with --certfile 0.
+    mode: "2pass" # 2pass: live partial text plus a punctuated final; online or offline also work.
+    chunk_size: "5,10,5" # Streaming latency in 60 ms frames: look-back, chunk, look-ahead.
+    sample_rate: 16000
+    language: "zh"
+    itn: true # Inverse text normalization, e.g. spoken numbers to digits.
+    hotwords: "" # Optional JSON string such as '{"CyberVerse": 20}'.
+    ssl_verify: true # Set to false for the docker image's self-signed wss:// certificate.

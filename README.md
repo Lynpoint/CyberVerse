@@ -230,6 +230,8 @@ inference:
     default: windows_sapi
 ```
 
+For local streaming Chinese ASR, start a [FunASR](https://github.com/modelscope/FunASR) runtime server in 2pass mode and set `asr.default: funasr`. The server address and options are in `infra/config/asr_models/funasr.yaml`.
+
 If inference runs in a Docker container, override the Ollama `base_url` with `http://host.docker.internal:11434/v1`.
 
 ### Step 4: Create local config and enable voice-only mode
