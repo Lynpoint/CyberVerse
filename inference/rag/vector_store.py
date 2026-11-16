@@ -234,7 +234,9 @@ class MilvusBackend(VectorStoreBackend):
             # remote server), so there is nothing to delete. Attempting a delete
             # here would surface below as a benign "collection not found" failure.
             return
-        safe_source = str(source_id).replace('"', '\\"')
+        # Escape backslashes before quotes: a trailing backslash would otherwise
+        # escape the closing quote, and ``\r`` would be read as a control char.
+        safe_source = str(source_id).replace('\\', '\\\\').replace('"', '\\"')
         # ``langchain-milvus`` swallows ``MilvusException`` internally and returns
         # ``False`` instead of raising, so a failed deletion on an existing
         # collection would otherwise silently leave stale chunks behind.
