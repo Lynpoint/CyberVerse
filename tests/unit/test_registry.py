@@ -114,3 +114,29 @@ async def test_shutdown_all():
     await registry.shutdown_all()
     assert plugin.shut_down is True
     assert len(registry.initialized_names) == 0
+
+
+class FailingShutdownPlugin(MockPlugin):
+    async def shutdown(self) -> None:
+        self.shut_down = True
+        raise RuntimeError("close failed")
+
+
+@pytest.mark.asyncio
+async def test_shutdown_all_continues_after_a_failure_and_clears():
+    """One plugin's shutdown raising must not leave the others unclosed or
+    keep partly-shut-down instances registered."""
+    registry = PluginRegistry()
+    registry.register("a.bad", FailingShutdownPlugin)
+    registry.register("a.good", MockPlugin)
+    await registry.initialize("a.bad", PluginConfig(plugin_name="a.bad"))
+    await registry.initialize("a.good", PluginConfig(plugin_name="a.good"))
+    bad = registry.get("a.bad")
+    good = registry.get("a.good")
+
+    with pytest.raises(RuntimeError, match="close failed"):
+        await registry.shutdown_all()
+
+    assert bad.shut_down is True
+    assert good.shut_down is True
+    assert len(registry.initialized_names) == 0

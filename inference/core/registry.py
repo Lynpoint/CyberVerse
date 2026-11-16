@@ -73,9 +73,20 @@ class PluginRegistry:
         ]
 
     async def shutdown_all(self) -> None:
-        for instance in self._instances.values():
-            await instance.shutdown()
-        self._instances.clear()
+        first_error: BaseException | None = None
+        try:
+            for instance in self._instances.values():
+                try:
+                    await instance.shutdown()
+                except Exception as exc:
+                    # Keep closing the remaining plugins and still clear the
+                    # registry even if one shutdown fails; surface it after.
+                    if first_error is None:
+                        first_error = exc
+        finally:
+            self._instances.clear()
+        if first_error is not None:
+            raise first_error
 
     @property
     def registered_names(self) -> list[str]:
