@@ -17,6 +17,40 @@ _DEFAULT_CONFIG_PATH = Path("config/cyberverse.yaml")
 _LEGACY_CONFIG_PATH = Path("cyberverse_config.yaml")
 
 
+def _replace_env_in_value(value):
+    """Substitute ${VAR} placeholders inside an already-parsed value.
+
+    Substitution happens after YAML parsing so an environment value is treated
+    as data, never as YAML source. A value containing ':', '#', quotes or a
+    newline therefore cannot corrupt the document or change its structure.
+    """
+    def _replace(match: re.Match) -> str:
+        return os.environ.get(match.group(1), match.group(0))
+
+    if isinstance(value, str):
+        substituted = _ENV_VAR_PATTERN.sub(_replace, value)
+        # Text-level substitution used to feed the whole value back through
+        # yaml.safe_load, so an env value like "8080" or "true" became a number
+        # or bool. Keep that behavior for values that are a single placeholder,
+        # without letting YAML syntax in arbitrary values corrupt the document.
+        if _ENV_VAR_PATTERN.fullmatch(value):
+            try:
+                parsed = yaml.safe_load(substituted)
+            except yaml.YAMLError:
+                return substituted
+            if isinstance(parsed, (int, float, bool)) or parsed is None:
+                return parsed
+        return substituted
+    if isinstance(value, list):
+        return [_replace_env_in_value(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            _replace_env_in_value(key): _replace_env_in_value(item)
+            for key, item in value.items()
+        }
+    return value
+
+
 def _load_yaml_file(config_path: Path) -> dict:
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -24,17 +58,12 @@ def _load_yaml_file(config_path: Path) -> dict:
     with open(config_path, encoding="utf-8") as f:
         raw = f.read()
 
-    def _replace_env(match: re.Match) -> str:
-        var_name = match.group(1)
-        return os.environ.get(var_name, match.group(0))
-
-    raw = _ENV_VAR_PATTERN.sub(_replace_env, raw)
     data = yaml.safe_load(raw)
     if data is None:
         return {}
     if not isinstance(data, dict):
         raise ValueError(f"Config root must be a mapping: {config_path}")
-    return data
+    return _replace_env_in_value(data)
 
 
 def load_dotenv(path: str | Path) -> None:
