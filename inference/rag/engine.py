@@ -72,6 +72,14 @@ def _settings_from_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return rag if isinstance(rag, dict) else {}
 
 
+def _first_non_none(settings: dict[str, Any], *keys: str, default: Any) -> Any:
+    for key in keys:
+        value = settings.get(key)
+        if value is not None and value != "":
+            return value
+    return default
+
+
 def _embedding_config(config: dict[str, Any] | None) -> tuple[str, dict[str, Any]]:
     inference = (config or {}).get("inference", {})
     inference = inference if isinstance(inference, dict) else {}
@@ -122,12 +130,14 @@ class RAGEngine:
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         self.config = config or {}
         settings = _settings_from_config(self.config)
-        self.chunk_size = int(settings.get("chunk_size") or settings.get("chunk_chars") or DEFAULT_CHUNK_SIZE)
+        self.chunk_size = int(_first_non_none(settings, "chunk_size", "chunk_chars", default=DEFAULT_CHUNK_SIZE))
         self.chunk_overlap = int(
-            settings.get("chunk_overlap") or settings.get("chunk_overlap_chars") or DEFAULT_CHUNK_OVERLAP
+            _first_non_none(settings, "chunk_overlap", "chunk_overlap_chars", default=DEFAULT_CHUNK_OVERLAP)
         )
-        self.default_top_k = int(settings.get("top_k") or DEFAULT_TOP_K)
-        self.default_max_context_chars = int(settings.get("max_context_chars") or DEFAULT_MAX_CONTEXT_CHARS)
+        self.default_top_k = int(_first_non_none(settings, "top_k", default=DEFAULT_TOP_K))
+        self.default_max_context_chars = int(
+            _first_non_none(settings, "max_context_chars", default=DEFAULT_MAX_CONTEXT_CHARS)
+        )
         configured_min_score = settings.get("min_score")
         self.default_min_score = float(
             DEFAULT_MIN_SCORE if configured_min_score is None else configured_min_score
