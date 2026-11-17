@@ -20,6 +20,7 @@ installed.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 import shutil
@@ -46,7 +47,16 @@ def safe_collection_name(character_id: str) -> str:
     clean = re.sub(r"[^A-Za-z0-9_-]+", "_", character_id or "")
     clean = clean.replace("-", "_").strip("_")
     if not clean:
-        clean = "default"
+        # A non-empty id made only of non-ASCII characters (e.g. a Chinese
+        # name) sanitizes to nothing. Falling back to the literal "default"
+        # made every such character share the cv_default collection and
+        # cross-contaminate each other's RAG sources. Derive a stable suffix
+        # from the original id instead; a truly empty id keeps "default".
+        if character_id:
+            digest = hashlib.sha256(character_id.encode("utf-8")).hexdigest()[:12]
+            clean = f"u{digest}"
+        else:
+            clean = "default"
     name = f"cv_{clean}"
     if len(name) < 3:
         name = (name + "___")[:3]
