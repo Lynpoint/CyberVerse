@@ -204,3 +204,23 @@ def test_rag_config_accepts_zero_min_score():
     engine = RAGEngine({"pipeline": {"rag": {"min_score": 0.0}}})
 
     assert engine.default_min_score == 0.0
+
+
+def test_rag_config_accepts_explicit_zero_numeric_settings():
+    engine = RAGEngine(
+        {
+            "pipeline": {
+                "rag": {
+                    "chunk_size": 0,
+                    "chunk_overlap_chars": 0,
+                    "top_k": 0,
+                    "max_context_chars": 0,
+                }
+            }
+        }
+    )
+
+    assert engine.chunk_size == 0
+    assert engine.chunk_overlap == 0
+    assert engine.default_top_k == 0
+    assert engine.default_max_context_chars == 0
