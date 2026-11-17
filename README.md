@@ -230,7 +230,11 @@ inference:
     default: windows_sapi
 ```
 
+
+For local TTS with voice cloning, run [CosyVoice](https://github.com/FunAudioLLM/CosyVoice)'s FastAPI server (`runtime/python/fastapi/server.py`), set `tts.default: cosyvoice_local`, and point `prompt_wav` / `prompt_text` in `infra/config/tts_models/cosyvoice_local.yaml` at a short reference clip.
+
 For local streaming Chinese ASR, start a [FunASR](https://github.com/modelscope/FunASR) runtime server in 2pass mode and set `asr.default: funasr`. The server address and options are in `infra/config/asr_models/funasr.yaml`.
+
 
 If inference runs in a Docker container, override the Ollama `base_url` with `http://host.docker.internal:11434/v1`.
 

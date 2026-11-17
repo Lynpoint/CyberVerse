@@ -1,0 +1,11 @@
+cosyvoice_local:
+    plugin_class: "inference.plugins.tts.cosyvoice_local_plugin.CosyVoiceLocalTTSPlugin"
+    base_url: "http://127.0.0.1:50000" # CosyVoice runtime/python/fastapi/server.py
+    mode: "zero_shot" # zero_shot / cross_lingual / instruct2 need prompt_wav; sft needs spk_id (CosyVoice-300M-SFT).
+    prompt_wav: "" # Reference voice clip (3-10 s WAV) to clone.
+    prompt_text: "" # Transcript of prompt_wav, used by zero_shot.
+    instruct_text: "" # Style instruction for instruct2, e.g. "用温柔的语气说".
+    spk_id: "" # Built-in speaker for sft mode, e.g. "中文女".
+    use_speaking_style_instruct: false # Use the character's speaking style as the instruct2 instruction.
+    sample_rate: 24000 # Model output rate: 24000 for CosyVoice2/3, 22050 for CosyVoice-300M.
+    target_sample_rate: 16000 # Resampled rate sent to avatar models.
