@@ -229,6 +229,8 @@ inference:
     default: windows_sapi
 ```
 
+如需本地中文流式语音识别，可启动 [FunASR](https://github.com/modelscope/FunASR) runtime 服务（2pass 模式），并将 `asr.default` 设为 `funasr`。服务地址等参数见 `infra/config/asr_models/funasr.yaml`。
+
 如果推理服务运行在 Docker 容器中，请将 Ollama 的 `base_url` 覆盖为 `http://host.docker.internal:11434/v1`。
 
 ### 第 4 步：创建本地配置并启用 voice-only 模式

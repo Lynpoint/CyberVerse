@@ -238,6 +238,8 @@ func displayComponentName(id string) string {
 		return "Runcrate"
 	case "whisper":
 		return "Whisper"
+	case "funasr":
+		return "FunASR"
 	case "windows_sapi":
 		return "Windows Speech (local)"
 	default:
