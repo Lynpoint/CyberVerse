@@ -2,7 +2,7 @@ gemini:
     plugin_class: "inference.plugins.voice_llm.gemini_live.GeminiLivePlugin"
     api_key: "${GEMINI_API_KEY}"
     ws_url: "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
-    model: "gemini-3.1-flash-live-preview"
+    model: "gemini-3.8-live"
     voice: "Kore"
     input_sample_rate: 16000
     output_sample_rate: 24000
