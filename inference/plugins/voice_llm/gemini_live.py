@@ -26,7 +26,7 @@ class GeminiLivePlugin(VoiceLLMPlugin):
 
     def __init__(self) -> None:
         self.api_key = ""
-        self.model = "gemini-3.1-flash-live-preview"
+        self.model = "gemini-3.8-live"
         self.ws_url = (
             "wss://generativelanguage.googleapis.com/ws/"
             "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
