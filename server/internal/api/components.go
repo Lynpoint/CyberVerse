@@ -233,7 +233,7 @@ func displayComponentName(id string) string {
 	case "cheaperinference":
 		return "Cheaper Inference"
 	case "uberllm":
-		return "UberLLM"
+		return "MartLLM"
 	case "runcrate":
 		return "Runcrate"
 	case "whisper":

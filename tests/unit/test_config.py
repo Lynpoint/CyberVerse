@@ -59,7 +59,7 @@ def test_load_config_basic():
     assert cheaperinference["model"] == "gpt-5.4-mini"
     uberllm = config["inference"]["llm"]["uberllm"]
     assert uberllm["plugin_class"] == "inference.plugins.llm.openai_plugin.OpenAILLMPlugin"
-    assert uberllm["base_url"] == "https://api.uberllm.dev/v1"
+    assert uberllm["base_url"] == "https://api.martllm.com/v1"
     assert uberllm["model"] == "openai/gpt-5.4-mini"
     runcrate = config["inference"]["llm"]["runcrate"]
     assert runcrate["plugin_class"] == "inference.plugins.llm.openai_plugin.OpenAILLMPlugin"

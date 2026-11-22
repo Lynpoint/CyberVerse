@@ -189,13 +189,13 @@ CHEAPER_INFERENCE_API_KEY=your_cheaper_inference_api_key
 `gpt-5.4-mini`。在角色的 LLM 组件中选择 `cheaperinference` 即可，
 现有默认配置保持不变。
 
-或者使用 UberLLM 的 OpenAI 兼容 LLM：
+或者使用 MartLLM 的 OpenAI 兼容 LLM：
 
 ```env
 UBERLLM_API_KEY=your_uberllm_api_key
 ```
 
-内置的 `uberllm` LLM provider 使用 `https://api.uberllm.dev/v1` 和
+内置的 `uberllm` LLM provider 使用 `https://api.martllm.com/v1` 和
 `openai/gpt-5.4-mini`。在角色的 LLM 组件中选择 `uberllm` 即可，
 现有默认配置保持不变。
 

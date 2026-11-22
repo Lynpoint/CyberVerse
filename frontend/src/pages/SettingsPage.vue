@@ -232,9 +232,9 @@ async function test() {
           </label>
         </section>
 
-        <!-- UberLLM -->
+        <!-- MartLLM -->
         <section class="bg-cv-surface border border-cv-border rounded-cv-lg p-6">
-          <h3 class="text-sm font-semibold text-cv-text mb-4">UberLLM</h3>
+          <h3 class="text-sm font-semibold text-cv-text mb-4">MartLLM</h3>
           <label class="block">
             <span class="text-[13px] text-cv-text-secondary">API Key</span>
             <div class="relative mt-1.5">
