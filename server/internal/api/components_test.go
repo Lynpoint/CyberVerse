@@ -77,8 +77,8 @@ func TestDisplayComponentNameCheaperInference(t *testing.T) {
 }
 
 func TestDisplayComponentNameUberLLM(t *testing.T) {
-	if got := displayComponentName("uberllm"); got != "UberLLM" {
-		t.Fatalf("expected UberLLM, got %q", got)
+	if got := displayComponentName("uberllm"); got != "MartLLM" {
+		t.Fatalf("expected MartLLM, got %q", got)
 	}
 }
 
